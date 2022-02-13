@@ -33,7 +33,7 @@
 #include "ASR_Arduino.h"
 #include "HardwareSerial.h"
 #include "pins_arduino.h"
-
+  
 //extern "C"  void * __dso_handle ;
 
 #define clockCyclesPerMicrosecond() ( 48L ) // clock cycle 48 MHz
@@ -58,10 +58,27 @@
 #define  bitClear(value, bit)   ((value) &= ~(1UL << (bit)))
 #define  bit(b)   (1 << (b))
 #define  _BV(b)   (1UL << (b))
+#define nullptr NULL
 
-#define min(a, b) ((a)<(b)?(a):(b))
-#define max(a, b) ((a)>(b)?(a):(b))
-#define abs(x)   ((x)>0?(x):-(x))
+#ifdef __cplusplus
+  #include <algorithm>
+  using std::min;
+  using std::max;
+#else // C
+  #include <stdlib.h>
+  #ifndef abs
+    #define abs(x) ((x)>0?(x):-(x))
+  #endif // abs
+
+  #ifndef min
+    #define min(a,b) ((a)<(b)?(a):(b))
+  #endif // min
+
+  #ifndef max
+    #define max(a,b) ((a)>(b)?(a):(b))
+  #endif // max
+
+#endif // __cplusplus
 
 #define constrain(amt, low, high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 #define radians(deg) ((deg)*DEG_TO_RAD)
@@ -87,8 +104,8 @@ uint32_t BoardGetRandomSeed( void );
 long random(long howbig);
 void randomSeed(unsigned long seed);
 long random(long howsmall, long howbig);
-long map(long, long, long, long, long);
-
+long map(long x, long in_min, long in_max, long out_min, long out_max);
+	
 typedef bool boolean;
 typedef uint8_t byte;
 typedef unsigned int word;

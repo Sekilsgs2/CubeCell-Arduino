@@ -24,6 +24,7 @@
 #define __UTILITIES_H__
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /*!
  * Generic definition
@@ -220,6 +221,10 @@ void BoardCriticalSectionBegin( uint32_t *mask );
  * \param [IN] mask Pointer to a variable where the CPU IRQ mask was stored
  */
 void BoardCriticalSectionEnd( uint32_t *mask );
+
+bool BoardDisableIrq( void );
+
+void BoardEnableIrq( bool disabledhere);
 
 
 #ifdef __cplusplus

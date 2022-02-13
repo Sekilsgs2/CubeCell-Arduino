@@ -43,10 +43,19 @@
 #ifdef __asr650x__
 #define _EEPROM_SIZE              (CY_FLASH_SIZEOF_ROW * 3)
 #define _EEPROM_BASE              CY_SFLASH_USERBASE
+
+EEPROMClass::EEPROMClass(void)
+: _baddr(CY_SFLASH_USERBASE)
+, _data(0)
+, _size(0)
+, _dirty(false)
+{
+}
+
 #else
-#define #define _EEPROM_SIZE      0xC00
-#define _EEPROM_BASE              FLASH_BASE+0x7400
-#endif
+#define _EEPROM_SIZE      4096
+#define _EEPROM_BASE              FLASH_EEPROM_BASE
+
 EEPROMClass::EEPROMClass(uint32_t baddr)
 : _baddr(baddr)
 , _data(0)
@@ -56,12 +65,13 @@ EEPROMClass::EEPROMClass(uint32_t baddr)
 }
 
 EEPROMClass::EEPROMClass(void)
-: _baddr(CY_SFLASH_USERBASE)
+: _baddr(_EEPROM_BASE)
 , _data(0)
 , _size(0)
 , _dirty(false)
 {
 }
+#endif
 
 void EEPROMClass::begin(size_t size) {
   if (size <= 0) {

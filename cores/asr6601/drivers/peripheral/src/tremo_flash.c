@@ -1,6 +1,6 @@
 #include <string.h>
 #include "tremo_flash.h"
-#include "sx126x-board.h"
+//#include "sx126x-board.h"
 
 /**
  * @brief Erase all the flash main area
@@ -126,7 +126,8 @@ int32_t flash_program_bytes(uint32_t addr, uint8_t* data, uint32_t size)
  */
 RAM_FUNC_ATTR int32_t flash_program_line(uint32_t addr, uint8_t* data)
 {
-    bool tempIrq = BoardDisableIrq( );
+    //bool tempIrq = BoardDisableIrq( );
+	__disable_irq();
     //clear sr
     if(SEC->SR & SEC_SR_FLASH_ACCESS_ERROR_MASK)
         SEC->SR = SEC_SR_FLASH_ACCESS_ERROR_MASK;
@@ -145,7 +146,7 @@ RAM_FUNC_ATTR int32_t flash_program_line(uint32_t addr, uint8_t* data)
 
     if (SEC->SR & SEC_SR_FLASH_ACCESS_ERROR_MASK) {
         SEC->SR = SEC_SR_FLASH_ACCESS_ERROR_MASK;
-        BoardEnableIrq( tempIrq );
+        __enable_irq();
 		
         return ERRNO_FLASH_SEC_ERROR;
     }
@@ -160,7 +161,7 @@ RAM_FUNC_ATTR int32_t flash_program_line(uint32_t addr, uint8_t* data)
         ;
     EFC->SR = EFC_SR_OPERATION_DONE;
 
-    BoardEnableIrq( tempIrq );
+    __enable_irq();
     return ERRNO_OK;
 }
 

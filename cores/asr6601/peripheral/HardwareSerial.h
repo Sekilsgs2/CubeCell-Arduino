@@ -6,7 +6,7 @@
 #include "Stream.h"
 #include "uart.h"
 
-class HardwareSerial: public Print
+class HardwareSerial: public Stream
 {
 public:
     HardwareSerial(int uart_nr);

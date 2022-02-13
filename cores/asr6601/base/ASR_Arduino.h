@@ -28,7 +28,7 @@
 #include "asr6601_spi.h"
 #include "utilities.h"
 #include "pins_arduino.h"
-#include "sx126x-board.h"
+//#include "sx126x-board.h"
 
 #ifdef __cplusplus 
 		extern "C" {
@@ -87,10 +87,10 @@ typedef enum {
 } clock_pwm_t;
 
 #define FLASH_START_ADDR              FLASH_BASE
-#define FLASH_END_ADDR                FLASH_BASE+0x1000*64
+#define FLASH_END_ADDR                FLASH_BASE+128*1024
 
-#define FLASH_EEPROM_BASE             FLASH_BASE+0x1000*64-512-1024
-#define FLASH_EEPROM_END              FLASH_BASE+0x1000*64-513
+#define FLASH_EEPROM_BASE             FLASH_BASE+128*1024-4096
+#define FLASH_EEPROM_END              FLASH_BASE+128*1024
 
 typedef void (*timer_callback_func)();
 

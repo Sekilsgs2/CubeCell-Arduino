@@ -11,8 +11,8 @@
 #define USER_KEY  1
 
 
-#define UART0_RX 32
-#define UART0_TX 33
+#define UART0_RX 16
+#define UART0_TX 17
 #define UART1_RX 4
 #define UART1_TX 5
 #define UART2_RX 8

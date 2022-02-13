@@ -32,6 +32,28 @@
 // Standard random functions redefinition start
 #define RAND_LOCAL_MAX 2147483647L
 
+int boardIrqIsDisabled = false;
+bool BoardDisableIrq( void )
+{
+   if(boardIrqIsDisabled==false)
+   {
+       __disable_irq();
+       boardIrqIsDisabled = true;
+       return true;
+   }
+   else
+      return false;
+}
+
+void BoardEnableIrq( bool disabledhere)
+{
+    if(disabledhere)
+    {
+       __enable_irq();
+       boardIrqIsDisabled = false;
+    }
+}
+
 static uint32_t next = 1;
 
 int32_t rand1( void )

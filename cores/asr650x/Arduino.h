@@ -55,6 +55,7 @@
 #define  bitClear(value, bit)   ((value) &= ~(1UL << (bit)))
 #define  bit(b)   (1 << (b))
 #define  _BV(b)   (1UL << (b))
+#define nullptr NULL
 #define yield()
 
 //#ifdef __cplusplus
@@ -117,7 +118,6 @@ uint8_t BoardGetBatteryLevel(void);
 long random(long howbig);
 void randomSeed(unsigned long seed);
 long random(long howsmall, long howbig);
-long map(long, long, long, long, long);
 
 /* system functions */
 int main( void );

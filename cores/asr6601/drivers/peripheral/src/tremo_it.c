@@ -127,10 +127,6 @@ void TIMER0_IRQHandler(void)
 }
 
 */
-void __attribute__((weak)) RadioOnDioIrq()
-{
-	printf("RadioOnDioIrq");
-}
 extern bool uart0started;
 
 void DMA1_IRQHandler(void)
@@ -138,11 +134,13 @@ void DMA1_IRQHandler(void)
     dma1_IRQHandler();
 }
 
+extern void(*intrun[])(void);
 void LORA_IRQHandler()
 {
     if(uart0started)
         iomux(UART0_TX,1);
-    RadioOnDioIrq();
+	//printf("LORA!!\r\n");
+    intrun[0]();
 }
 
 

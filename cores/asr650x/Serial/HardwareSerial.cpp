@@ -11,50 +11,11 @@
 HardwareSerial Serial(UART_NUM_0);
 HardwareSerial Serial1(UART_NUM_1);
 
-uart_rxbuff_t _rxbuff[2];
-
 HardwareSerial::HardwareSerial(int8_t uart_num) 
 	:_uart_num(uart_num) 
 	,_rx(-1)
 	,_tx(-1)
 	{}
-
-void writeRxToBuff0()
-{
-	uint8_t uart_num = 0;
-	while(UART_1_SpiUartGetRxBufferSize())
-	{
-		if( ((_rxbuff[uart_num].rx_w + 1) % UART_RX_SIZE) != _rxbuff[uart_num].rx_r )
-		{
-			_rxbuff[uart_num].rx_buf[_rxbuff[uart_num].rx_w ++] = UART_1_UartGetByte();;
-			_rxbuff[uart_num].rx_w = _rxbuff[uart_num].rx_w % UART_RX_SIZE;
-		}
-		else
-		{
-			UART_1_UartGetByte();
-		}
-	}
-	UART_1_ClearRxInterruptSource(UART_1_INTR_RX_NOT_EMPTY);
-}
-
-void writeRxToBuff1()
-{
-	uint8_t uart_num = 1;
-	while(UART_2_SpiUartGetRxBufferSize())
-	{
-		if( ((_rxbuff[uart_num].rx_w + 1) % UART_RX_SIZE) != _rxbuff[uart_num].rx_r )
-		{
-			_rxbuff[uart_num].rx_buf[_rxbuff[uart_num].rx_w ++] = UART_2_UartGetByte();;
-			_rxbuff[uart_num].rx_w = _rxbuff[uart_num].rx_w % UART_RX_SIZE;
-		}
-		else
-		{
-			UART_2_UartGetByte();
-		}
-	}
-	UART_2_ClearRxInterruptSource(UART_2_INTR_RX_NOT_EMPTY);
-}
-
 
 bool HardwareSerial::begin(uint32_t baud, uint32_t config, int rxPin, int txPin, bool invert, unsigned long timeout_ms)
 {
@@ -135,20 +96,6 @@ bool HardwareSerial::begin(uint32_t baud, uint32_t config, int rxPin, int txPin,
 		UART_2_UART_TX_CTRL_REG =tx_ctrl0;
 		UART_2_TX_CTRL_REG = tx_ctrl1;
 	}
-	_rxbuff[_uart_num].rx_r=0;
-	_rxbuff[_uart_num].rx_w=0;
-	_rxbuff[_uart_num].rx_buf=(uint8_t*) malloc(UART_RX_SIZE);
-
-	if( _uart_num == UART_NUM_0) 
-	{
-		UART_1_SCB_IRQ_StartEx(writeRxToBuff0);
-	}
-	else
-	{
-		UART_2_SCB_IRQ_StartEx(writeRxToBuff1);
-	}
-
-	
 	return true;
 /*
 	printf("config %d\r\n",config);
@@ -206,12 +153,9 @@ void HardwareSerial::setDebugOutput(bool en)
 
 int HardwareSerial::available(void)
 {
-	/*
-
 	uint8_t buffsize;
 	//for(uint32_t i=0;i<(23040000/SerialBaud);i++)
 	//{
-
 	if( _uart_num == UART_NUM_0)
 	{
 		buffsize=UART_1_SpiUartGetRxBufferSize();
@@ -224,14 +168,7 @@ int HardwareSerial::available(void)
 		return buffsize;
 	}
 	//}
-	return 0;*/
-
-	if(_rxbuff[_uart_num].rx_r == _rxbuff[_uart_num].rx_w)
-		return 0;
-	if(_rxbuff[_uart_num].rx_r < _rxbuff[_uart_num].rx_w)
-		return _rxbuff[_uart_num].rx_w - _rxbuff[_uart_num].rx_r;
-	else
-		return UART_RX_SIZE - _rxbuff[_uart_num].rx_r + _rxbuff[_uart_num].rx_w;
+	return 0;
 }
 
 void HardwareSerial::delayByte(void)
@@ -253,14 +190,15 @@ int HardwareSerial::availableForWrite(void)
 
 int HardwareSerial::peek(void)
 {
-  if(_rxbuff[_uart_num].rx_r == _rxbuff[_uart_num].rx_w)
-	  return -1;
-  return _rxbuff[_uart_num].rx_buf[_rxbuff[_uart_num].rx_r];
+  //  if (available()) {
+  //      return uartPeek(_uart);
+  //  }
+  //  return -1;
+  return 0;
 }
 
 int HardwareSerial::read(void)
 {
-/*
 	if(available()) {
 		if( _uart_num == UART_NUM_0)
 		{
@@ -271,13 +209,7 @@ int HardwareSerial::read(void)
 			return UART_2_UartGetByte();
 		}
 	}
-	return (uint32)(-1);*/
-	if(_rxbuff[_uart_num].rx_r == _rxbuff[_uart_num].rx_w)
-		return -1;
-
-	uint8_t data = _rxbuff[_uart_num].rx_buf[_rxbuff[_uart_num].rx_r++];
-	_rxbuff[_uart_num].rx_r = _rxbuff[_uart_num].rx_r % UART_RX_SIZE;
-	return data;
+	return (uint32)(-1);
 }
 
 int HardwareSerial::read(uint8_t* buff, uint32_t timeout)
@@ -311,8 +243,6 @@ int HardwareSerial::read(uint8_t* buff, uint32_t timeout)
 
 void HardwareSerial::flush()
 {
-	_rxbuff[_uart_num].rx_r = 0;
-	_rxbuff[_uart_num].rx_w = 0;
 	if( _uart_num == UART_NUM_0)
 	{
 		UART_1_SpiUartClearRxBuffer();

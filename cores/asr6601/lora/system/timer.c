@@ -60,7 +60,7 @@ Maintainer: Miguel Luis, Gregory Cristian and Wael Guibene
 
 /* Includes ------------------------------------------------------------------*/
 #include <time.h>
-#include "sx126x-board.h"
+//#include "sx126x-board.h"
 #include "timer.h"
 #include "rtc-board.h"
 #include "ASR_Arduino.h"
@@ -204,11 +204,12 @@ void TimerInit( TimerEvent_t *obj, void ( *callback )( void ) )
 void TimerStart( TimerEvent_t *obj )
 {
     uint32_t elapsedTime = 0;
-    bool tempIrq = BoardDisableIrq();
+    __disable_irq();
+	
 
     if( ( obj == NULL ) || ( TimerExists( obj ) == true ) )
     {
-        BoardEnableIrq(tempIrq);
+         __enable_irq();
         return;
     }
 
@@ -235,7 +236,7 @@ void TimerStart( TimerEvent_t *obj )
             TimerInsertTimer( obj);
         }
     }
-    BoardEnableIrq(tempIrq);
+    __enable_irq();
 }
 
 static void TimerInsertTimer( TimerEvent_t *obj)
@@ -305,7 +306,7 @@ void TimerIrqHandler( void )
 
 void TimerStop( TimerEvent_t *obj ) 
 {
-    bool tempIrq = BoardDisableIrq();
+    __disable_irq();
 
     TimerEvent_t* prev = TimerListHead;
     TimerEvent_t* cur = TimerListHead;
@@ -313,7 +314,7 @@ void TimerStop( TimerEvent_t *obj )
     // List is empty or the Obj to stop does not exist 
     if( ( TimerListHead == NULL ) || ( obj == NULL ) )
     {
-        BoardEnableIrq(tempIrq);
+         __enable_irq();
         return;
     }
 
@@ -375,7 +376,7 @@ void TimerStop( TimerEvent_t *obj )
     }
 
     obj->IsRunning = false;
-    BoardEnableIrq(tempIrq);
+     __enable_irq();
 }  
   
 static bool TimerExists( TimerEvent_t *obj )

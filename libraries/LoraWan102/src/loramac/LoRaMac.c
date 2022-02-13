@@ -2530,7 +2530,7 @@ static void wota_CadDone( bool channelActivityDetected )
 		//Radio.Sleep();
 		if ( RegionRxConfig( LoRaMacRegion, &RxWindow3Config, ( int8_t * )&McpsIndication.RxDatarate ) == true ) {
 			RxWindowSetup( false, wota_max_rxtime );
-			RxSlot = RX_SLOT_WOTA;;
+			RxSlot = RX_SLOT_WIN_CLASS_C;;
 		}
 		wota_CadTimerStarted=false;
 		TimerStop(&wota_CadTimer);
@@ -3933,7 +3933,6 @@ LoRaMacStatus_t LoRaMacMlmeRequest( MlmeReq_t *mlmeRequest )
             LoRaMacParams.update_freqband = true;
 #endif
             LoRaMacParams.ChannelsDatarate = RegionAlternateDr( LoRaMacRegion, &altDr );
-
 #ifdef CONFIG_LORA_VERIFY
             if (g_lora_debug == true)
                 PRINTF_RAW("MacHdr major:%d rfu:%d mtype:%d\r\n", macHdr.Bits.Major, macHdr.Bits.RFU, macHdr.Bits.MType);
