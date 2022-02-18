@@ -48,6 +48,7 @@ void nvic_init()
 void system_init(void)
 {
     rcc_set_sys_clk_source(RCC_SYS_CLK_SOURCE_RCO48M);
+	rcc_set_pclk_div(RCC_PCLK0_DIV_1, RCC_PCLK1_DIV_1);
     // FPU enable
 #if (__FPU_PRESENT == 1)
     SCB->CPACR |= ((3UL << 10 * 2) | (3UL << 11 * 2));
@@ -62,6 +63,28 @@ void system_init(void)
 
     nvic_init();
     delay_init();
+}
+
+int boardIrqIsDisabled = false;
+bool BoardDisableIrq( void )
+{
+   if(boardIrqIsDisabled==false)
+   {
+       __disable_irq();
+       boardIrqIsDisabled = true;
+       return true;
+   }
+   else
+      return false;
+}
+
+void BoardEnableIrq( bool disabledhere)
+{
+    if(disabledhere)
+    {
+       __enable_irq();
+       boardIrqIsDisabled = false;
+    }
 }
 
 /********END OF FILE ***********/

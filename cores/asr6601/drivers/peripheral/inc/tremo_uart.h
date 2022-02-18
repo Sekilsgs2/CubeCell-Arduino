@@ -171,6 +171,15 @@ void uart_irda_cmd(uart_t* uartx, bool new_state);
 void uart_dma_config(uart_t* uartx, uart_dma_req_t dma_req, bool new_state);
 void uart_dma_onerror_config(uart_t* uartx, bool new_state);
 
+uint8_t uart_get_dr0(void);
+void uart_attach_rx_callback(void (*callback)(void));
+void uart_attach_tx_callback(void (*callback)(void), size_t size);
+
+bool serial_tx_active(void);
+bool serial_rx_active(void);
+
+uint8_t UART_Transmit_IT(uint8_t *pData, uint16_t Size);
+
 #ifdef __cplusplus
 }
 #endif

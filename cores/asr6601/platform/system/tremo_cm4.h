@@ -76,6 +76,7 @@ typedef enum IRQn {
 
 #include "core_cm4.h"
 #include <stdint.h>
+#include <stdbool.h>
 
 // ---------------------------------------------------------------------------
 typedef enum { RESET = 0, SET = !RESET } flag_status_t, it_status_t;
@@ -95,6 +96,11 @@ typedef unsigned int u32;
 #define ERRNO_OK      (0)
 #define ERRNO_ERROR   (-1)
 #define ERRNO_TIMEOUT (-2)
+
+
+bool BoardDisableIrq( void );
+
+void BoardEnableIrq( bool disabledhere);
 
 // ---------------------------------------------------------------------------
 

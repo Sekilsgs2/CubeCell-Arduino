@@ -413,9 +413,11 @@ typedef struct __SSP {
 #define SSP0_BASE (PERIPH_BASE + 0x00006000) /*!< SSP0 base address*/
 #define SSP1_BASE (PERIPH_BASE + 0x00012000) /*!< SSP1 base address*/
 #define SSP2_BASE (PERIPH_BASE + 0x00013000) /*!< SSP2 base address*/
+#define LORAC_SSP_BASE (PERIPH_BASE + 0x00009000) /*!< SSP2 base address*/
 #define SSP0 ((ssp_typedef_t*)SSP0_BASE)     /*!< SSP0 peripheral*/
 #define SSP1 ((ssp_typedef_t*)SSP1_BASE)     /*!< SSP1 peripheral*/
 #define SSP2 ((ssp_typedef_t*)SSP2_BASE)     /*!< SSP2 peripheral*/
+#define LORAC_SSP ((ssp_typedef_t*)LORAC_SSP_BASE)     /*!< SSP2 peripheral*/
 
 #define SPI_0 ((spi_t*)SSP0_BASE)     /*!< SSP0 peripheral*/
 #define SPI_1 ((spi_t*)SSP1_BASE)     /*!< SSP1 peripheral*/
@@ -539,6 +541,17 @@ typedef struct {
 #define UART_CR_FLOW_CTRL_CTS     ((uint32_t)0x00008000)
 #define UART_CR_FLOW_CTRL_RTS     ((uint32_t)0x00004000)
 #define UART_CR_FLOW_CTRL_CTS_RTS ((uint32_t)0x0000C000)
+
+#define UART_HardwareFlowControl_None       ((uint16_t)0x0000)
+#define UART_HardwareFlowControl_CTSEn      ((uint16_t)0x8000)
+#define UART_HardwareFlowControl_RTSEn      ((uint16_t)0x4000)
+#define UART_HardwareFlowControl_Out2       ((uint16_t)0x2000)
+#define UART_HardwareFlowControl_Out1       ((uint16_t)0x1000)
+#define UART_HardwareFlowControl_RTS        ((uint16_t)0x0800)
+#define UART_HardwareFlowControl_DTR        ((uint16_t)0x0400)
+#define UART_HardwareFlowControl_RXE        ((uint16_t)0x0200)
+#define UART_HardwareFlowControl_TXE        ((uint16_t)0x0100)
+#define UART_HardwareFlowControl_LBE        ((uint16_t)0x0080)
 
 /****************************UART LCR_H bit definition*************************/
 #define UART_LCR_H_PEN ((uint32_t)0x00000002)

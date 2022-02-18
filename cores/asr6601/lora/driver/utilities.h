@@ -222,11 +222,6 @@ void BoardCriticalSectionBegin( uint32_t *mask );
  */
 void BoardCriticalSectionEnd( uint32_t *mask );
 
-bool BoardDisableIrq( void );
-
-void BoardEnableIrq( bool disabledhere);
-
-
 #ifdef __cplusplus
 }
 #endif

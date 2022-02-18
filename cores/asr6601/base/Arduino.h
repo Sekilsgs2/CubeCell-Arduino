@@ -31,6 +31,8 @@
 #include "stdlib_noniso.h"
 #include <math.h>
 #include "ASR_Arduino.h"
+#include "SX126X_Regs.h"
+#include "SX126X_hal.h"
 #include "HardwareSerial.h"
 #include "pins_arduino.h"
   

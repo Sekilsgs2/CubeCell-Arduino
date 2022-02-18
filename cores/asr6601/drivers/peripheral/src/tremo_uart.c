@@ -2,6 +2,22 @@
 #include <stdbool.h>
 #include "tremo_rcc.h"
 #include "tremo_uart.h"
+#include "uart.h"
+
+static void (*rx_callback[1])(void);
+static void (*tx_callback[1])(void);
+volatile size_t uart0_tx_size;
+volatile bool tx_state;
+volatile bool rx_state;
+
+uint8_t                  *pTxBuffPtr;              /*!< Pointer to UART Tx transfer Buffer */
+uint16_t                 TxXferSize;               /*!< UART Tx Transfer size              */
+volatile uint16_t        TxXferCount;              /*!< UART Tx Transfer */
+
+extern uint8_t *tx_buff;
+extern volatile uint16_t tx_head;
+extern volatile uint16_t tx_tail;
+extern volatile size_t tx_size;
 
 uint32_t calc_uart_baud(uint32_t uart_clk, uint32_t baud)
 {
@@ -64,13 +80,19 @@ void uart_send_data(uart_t* uartx, uint8_t data)
  * @param uartx Select the UART peripheral number(UART0, UART1, UART2 and UART3)
  * @retval uint8_t Data received 
  */
-uint8_t uart_receive_data(uart_t* uartx)
+  uint8_t uart_receive_data(uart_t* uartx)
 {
     /* wait till rx fifo is not empty */
-    while (uart_get_flag_status(uartx, UART_FLAG_RX_FIFO_EMPTY) == SET)
-        ;
+    //while (uart_get_flag_status(uartx, UART_FLAG_RX_FIFO_EMPTY) == SET)
+        //;
 
     return uartx->DR & 0xFF;
+}
+
+  uint8_t uart_get_dr0(void)
+{
+
+    return UART0->DR & 0xFF;
 }
 
 /**
@@ -114,6 +136,8 @@ void uart_deinit(uart_t* uartx)
     rcc_enable_peripheral_clk(peripheral, false);
     rcc_rst_peripheral(peripheral, true);
     rcc_rst_peripheral(peripheral, false);
+	tx_state = false;
+	rx_state = false;
 }
 
 /**
@@ -216,6 +240,9 @@ int32_t uart_init(uart_t* uartx, uart_config_t* config)
     uint32_t uart_clk_freq = 0;
     uint32_t clk_src       = 0;
 
+	tx_state = false;
+	rx_state = false;
+	
     // disable UART
     uartx->CR &= ~UART_CR_UART_EN;
     // flush fifo by setting FEN = 0
@@ -260,7 +287,7 @@ int32_t uart_init(uart_t* uartx, uart_config_t* config)
     // set LCR_H
     TREMO_REG_SET(uartx->LCR_H, UART_LCR_H_WLEN, config->data_width);
     TREMO_REG_SET(uartx->LCR_H, UART_LCR_H_STOP, config->stop_bits);
-    TREMO_REG_EN(uartx->LCR_H, UART_LCR_H_FEN, config->fifo_mode);
+    TREMO_REG_EN(uartx->LCR_H, UART_LCR_H_FEN, 1);
     switch (config->parity) {
     case UART_PARITY_ODD:
         uartx->LCR_H |= UART_LCR_H_PEN;
@@ -363,4 +390,115 @@ void uart_dma_config(uart_t* uartx, uart_dma_req_t dma_req, bool new_state)
 void uart_dma_onerror_config(uart_t* uartx, bool new_state)
 {
     TREMO_REG_EN(uartx->DMACR, UART_DMACR_ONERR_EN_MASK, new_state);
+}
+
+void UART00_IRQHandler(void) {
+  if ( uart_get_interrupt_status(UART0, UART_INTERRUPT_RX_DONE) )
+  {
+	uart_clear_interrupt(UART0, UART_INTERRUPT_RX_DONE);	
+    while ( uart_get_flag_status(UART0, UART_FLAG_RX_FIFO_EMPTY) != 1 )
+    {
+		if (rx_callback[0])
+			rx_callback[0]();
+    }
+    
+  }
+
+  if ( uart_get_interrupt_status(UART0, UART_INTERRUPT_OVERRUN_ERROR) )
+  {
+    uart_clear_interrupt(UART0, UART_INTERRUPT_OVERRUN_ERROR);
+    while ( uart_get_flag_status(UART0, UART_FLAG_RX_FIFO_EMPTY) != 1 )
+    {
+		if (rx_callback[0])
+				rx_callback[0]();  
+    }
+  }
+  if ( uart_get_interrupt_status(UART0, UART_INTERRUPT_TX_DONE) )
+  {
+    uart_clear_interrupt(UART0, UART_INTERRUPT_TX_DONE);
+	if (tx_state)
+	{
+		if (TxXferCount == 0)
+		
+		{
+			tx_state = false;
+			if (tx_callback[0])
+				tx_callback[0]();
+		}
+		else
+		{
+			while ( (uart_get_flag_status(UART0, UART_FLAG_TX_FIFO_FULL) != 1) && (TxXferCount > 0)) {
+				UART0->DR = (uint8_t)(*pTxBuffPtr & (uint8_t)0xFF);
+				pTxBuffPtr++;
+				TxXferCount--;
+			}
+			if (TxXferCount == 0)
+			{
+				if (uart_get_flag_status(UART0, UART_FLAG_TX_FIFO_FULL) != 1)
+				{
+					tx_state = false;
+					if (tx_callback[0])
+						tx_callback[0]();
+				}
+			}
+		}
+    }
+  }	
+}
+
+void uart_attach_rx_callback(void (*callback)(void)) {
+	
+	NVIC_DisableIRQ(UART0_IRQn);
+	rx_callback[0] = callback;
+	NVIC_EnableIRQ(UART0_IRQn);
+}
+
+uint8_t UART_Transmit_IT(uint8_t *pData, uint16_t Size) 
+{
+    pTxBuffPtr  = pData;
+    TxXferSize  = Size;
+    TxXferCount = Size;
+	while ( (uart_get_flag_status(UART0, UART_FLAG_TX_FIFO_FULL) != 1) && (TxXferCount > 0)) {
+		UART0->DR = (uint8_t)(*pTxBuffPtr & (uint8_t)0xFF);
+		pTxBuffPtr++;
+		TxXferCount--;
+	}
+	if (TxXferCount == 0)
+	{
+		if (uart_get_flag_status(UART0, UART_FLAG_TX_FIFO_FULL) != 1)
+		{
+			tx_state = false;
+			if (tx_callback[0])
+				tx_callback[0]();
+		}
+	}
+		
+	//uart_config_interrupt(UART0,UART_INTERRUPT_TX_DONE | UART_INTERRUPT_RX_DONE,ENABLE);	
+}
+
+void uart_attach_tx_callback(void (*callback)(void), size_t size) {
+	
+	tx_callback[0] = callback;
+	uart0_tx_size = size;
+	tx_state = true;
+	NVIC_DisableIRQ(UART0_IRQn);
+	UART_Transmit_IT(&tx_buff[tx_tail], size);
+	
+	NVIC_EnableIRQ(UART0_IRQn);
+}
+
+bool serial_rx_active(void)
+{
+  return rx_state;
+}
+
+/**
+ * Attempts to determine if the serial peripheral is already in use for TX
+ *
+ * @param obj The serial object
+ * @return Non-zero if the TX transaction is ongoing, 0 otherwise
+ */
+bool serial_tx_active(void)
+{
+  return tx_state;
 }

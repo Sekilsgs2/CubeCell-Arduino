@@ -120,7 +120,7 @@ g_pfnVectors:
   .word     EFC_IRQHandler
   .word     UART3_IRQHandler
   .word     I2C2_IRQHandler
-  .word     UART0_IRQHandler
+  .word     UART00_IRQHandler
   .word     UART1_IRQHandler
   .word     UART2_IRQHandler
   .word     LPUART_IRQHandler
@@ -202,8 +202,8 @@ g_pfnVectors:
    .weak      I2C2_IRQHandler
    .thumb_set I2C2_IRQHandler,Default_Handler
    
-   .weak      UART0_IRQHandler
-   .thumb_set UART0_IRQHandler,Default_Handler
+   .weak      UART00_IRQHandler
+   .thumb_set UART00_IRQHandler,Default_Handler
    
    .weak      UART1_IRQHandler
    .thumb_set UART1_IRQHandler,Default_Handler

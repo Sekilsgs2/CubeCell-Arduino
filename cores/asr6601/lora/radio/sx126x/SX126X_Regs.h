@@ -24,7 +24,7 @@
  *
  * \{
  *
- * \defgroup  LORA_SX126X
+ * \defgroup  SX126X_LORA_SX126X
  *
  * \{
  *
@@ -36,18 +36,19 @@
 #include <stdbool.h>
 #include <math.h>
 
-
 #define SX1261                                      1
 #define SX1262                                      2
 
-#ifdef __cplusplus
-extern "C" { 
-#endif
+#define CONFIG_LORA_USE_TCXO
+#define CONFIG_LORA_RFSW_CTRL_PIN   59
+#define CONFIG_LORA_RFSW_VDD_PIN    45
+
+#define SX127X_SYNC_WORD                              0x12
 
 /*!
  * Radio complete Wake-up Time with margin for temperature compensation
  */
-#define RADIO_WAKEUP_TIME                           3 // [ms]
+#define SX126X_RADIO_WAKEUP_TIME                           3 // [ms]
 
 /*!
  * \brief Compensation delay for SetAutoTx/Rx functions in 15.625 microseconds
@@ -78,48 +79,48 @@ extern "C" {
  * \brief The address of the register holding the first byte defining the CRC seed
  *
  */
-#define REG_LR_CRCSEEDBASEADDR                      0x06BC
+#define SX126X_REG_LR_CRCSEEDBASEADDR                      0x06BC
 
 /*!
  * \brief The address of the register holding the first byte defining the CRC polynomial
  */
-#define REG_LR_CRCPOLYBASEADDR                      0x06BE
+#define SX126X_REG_LR_CRCPOLYBASEADDR                      0x06BE
 
 /*!
  * \brief The address of the register holding the first byte defining the whitening seed
  */
-#define REG_LR_WHITSEEDBASEADDR_MSB                 0x06B8
-#define REG_LR_WHITSEEDBASEADDR_LSB                 0x06B9
+#define SX126X_REG_LR_WHITSEEDBASEADDR_MSB                 0x06B8
+#define SX126X_REG_LR_WHITSEEDBASEADDR_LSB                 0x06B9
 
 /*!
  * \brief The address of the register holding the packet configuration
  */
-#define REG_LR_PACKETPARAMS                         0x0704
+#define SX126X_REG_LR_PACKETPARAMS                         0x0704
 
 /*!
  * \brief The address of the register holding the payload size
  */
-#define REG_LR_PAYLOADLENGTH                        0x0702
+#define SX126X_REG_LR_PAYLOADLENGTH                        0x0702
 
 /*!
  * \brief The addresses of the registers holding SyncWords values
  */
-#define REG_LR_SYNCWORDBASEADDRESS                  0x06C0
+#define SX126X_REG_LR_SYNCWORDBASEADDRESS                  0x06C0
 
 /*!
  * \brief The addresses of the register holding LoRa Modem SyncWord value
  */
-#define REG_LR_SYNCWORD                             0x0740
+#define SX126X_REG_LR_SYNCWORD                             0x0740
 
 /*!
  * Syncword for Private LoRa networks
  */
-#define LORA_MAC_PRIVATE_SYNCWORD                   0x1424
+#define SX126X_LORA_MAC_PRIVATE_SYNCWORD                   0x1424
 
 /*!
  * Syncword for Public LoRa networks
  */
-#define LORA_MAC_PUBLIC_SYNCWORD                    0x3444
+#define SX126X_LORA_MAC_PUBLIC_SYNCWORD                    0x3444
 
 /*!
  * The address of the register giving a 4 bytes random number
@@ -129,47 +130,57 @@ extern "C" {
 /*!
  * The address of the register holding RX Gain value (0x94: power saving, 0x96: rx boosted)
  */
-#define REG_RX_GAIN                                 0x08AC
+#define SX126X_REG_RX_GAIN                                 0x08AC
 
 /*!
  * Change the value on the device internal trimming capacitor
  */
-#define REG_XTA_TRIM                                0x0911
+#define SX126X_REG_XTA_TRIM                                0x0911
 
 /*!
  * Set the current max value in the over current protection
  */
-#define REG_OCP                                     0x08E7
+#define SX126X_REG_OCP                                     0x08E7
 
 /*!
  * \brief WORKAROUND - Modulation Quality with 500 kHz LoRa Bandwidth, see DS_SX1261-2_V1.2 datasheet chapter 15.1
  */
-#define REG_TX_MODULATION                           0x0889
+#define SX126X_REG_TX_MODULATION                           0x0889
 
 /*!
  * \brief WORKAROUND - Optimizing the Inverted IQ Operation, see DS_SX1261-2_V1.2 datasheet chapter 15.4
  */
-#define REG_IQ_POLARITY                             0x0736
+#define SX126X_REG_IQ_POLARITY                             0x0736
 
 /*!
  * \brief Base address of the register retention list
  */
-#define REG_RETENTION_LIST_BASE_ADDRESS             0x029F
+#define SX126X_REG_RETENTION_LIST_BASE_ADDRESS             0x029F
 
 /*!
  * \brief Maximum number of register that can be added to the retention list
  */
-#define MAX_NB_REG_IN_RETENTION                     4
+#define MAX_NB_SX126X_REG_IN_RETENTION                     4
 
 /*!
  * \brief RTC control
  */
-#define REG_RTC_CTRL                                0x0902
+#define SX126X_REG_RTC_CTRL                                0x0902
 
 /*!
  * \brief Event clear
  */
-#define REG_EVT_CLR                                 0x0944
+#define SX126X_REG_EVT_CLR                                 0x0944
+
+// undocumented registers
+#define SX126X_REG_SENSITIVITY_CONFIG                 0x0889 // SX1268 datasheet v1.1, section 15.1
+#define SX126X_REG_TX_CLAMP_CONFIG                    0x08D8 // SX1268 datasheet v1.1, section 15.2
+#define SX126X_REG_RTC_STOP                           0x0920 // SX1268 datasheet v1.1, section 15.3
+#define SX126X_REG_RTC_EVENT                          0x0944 // SX1268 datasheet v1.1, section 15.3
+#define SX126X_REG_IQ_CONFIG                          0x0736 // SX1268 datasheet v1.1, section 15.4
+#define SX126X_REG_RX_GAIN_RETENTION_0                0x029F // SX1268 datasheet v1.1, section 9.6
+#define SX126X_REG_RX_GAIN_RETENTION_1                0x02A0 // SX1268 datasheet v1.1, section 9.6
+#define SX126X_REG_RX_GAIN_RETENTION_2                0x02A1 // SX1268 datasheet v1.1, section 9.6
 
 /*!
  * \brief Structure describing the radio status
@@ -184,23 +195,23 @@ typedef union RadioStatus_u
         uint8_t ChipMode  : 3;  //!< Chip mode
         uint8_t CpuBusy   : 1;  //!< Flag for CPU radio busy
     }Fields;
-}RadioStatus_t;
+}SX126X_RadioStatus_t;
 
 /*!
  * \brief Structure describing the error codes for callback functions
  */
 typedef enum
 {
-    IRQ_HEADER_ERROR_CODE                   = 0x01,
-    IRQ_SYNCWORD_ERROR_CODE                 = 0x02,
-    IRQ_CRC_ERROR_CODE                      = 0x04,
-}IrqErrorCode_t;
+    SX126X_IRQ_HEADER_ERROR_CODE                   = 0x01,
+    SX126X_IRQ_SYNCWORD_ERROR_CODE                 = 0x02,
+    SX126X_IRQ_CRC_ERROR_CODE                      = 0x04,
+}SX126X_IrqErrorCode_t;
 
 enum IrqPblSyncHeaderCode_t
 {
-    IRQ_PBL_DETECT_CODE                     = 0x01,
-    IRQ_SYNCWORD_VALID_CODE                 = 0x02,
-    IRQ_HEADER_VALID_CODE                   = 0x04,
+    SX126X_IRQ_PBL_DETECT_CODE                     = 0x01,
+    SX126X_IRQ_SYNCWORD_VALID_CODE                 = 0x02,
+    SX126X_IRQ_HEADER_VALID_CODE                   = 0x04,
 };
 
 /*!
@@ -208,15 +219,15 @@ enum IrqPblSyncHeaderCode_t
  */
 typedef enum
 {
-    MODE_SLEEP                              = 0x00,         //! The radio is in sleep mode
-    MODE_STDBY_RC,                                          //! The radio is in standby mode with RC oscillator
-    MODE_STDBY_XOSC,                                        //! The radio is in standby mode with XOSC oscillator
-    MODE_FS,                                                //! The radio is in frequency synthesis mode
-    MODE_TX,                                                //! The radio is in transmit mode
-    MODE_RX,                                                //! The radio is in receive mode
-    MODE_RX_DC,                                             //! The radio is in receive duty cycle mode
-    MODE_CAD                                                //! The radio is in channel activity detection mode
-}RadioOperatingModes_t;
+    SX126X_MODE_SLEEP                              = 0x00,         //! The radio is in sleep mode
+    SX126X_MODE_STDBY_RC,                                          //! The radio is in standby mode with RC oscillator
+    SX126X_MODE_STDBY_XOSC,                                        //! The radio is in standby mode with XOSC oscillator
+    SX126X_MODE_FS,                                                //! The radio is in frequency synthesis mode
+    SX126X_MODE_TX,                                                //! The radio is in transmit mode
+    SX126X_MODE_RX,                                                //! The radio is in receive mode
+    SX126X_MODE_RX_DC,                                             //! The radio is in receive duty cycle mode
+    SX126X_MODE_CAD                                                //! The radio is in channel activity detection mode
+}SX126X_RadioOperatingModes_t;
 
 /*!
  * \brief Declares the oscillator in use while in standby mode
@@ -226,9 +237,9 @@ typedef enum
  */
 typedef enum
 {
-    STDBY_RC                                = 0x00,
-    STDBY_XOSC                              = 0x01,
-}RadioStandbyModes_t;
+    SX126X_STDBY_RC                                = 0x00,
+    SX126X_STDBY_XOSC                              = 0x01,
+}SX126X_RadioStandbyModes_t;
 
 /*!
  * \brief Declares the power regulation used to power the device
@@ -238,68 +249,68 @@ typedef enum
  */
 typedef enum
 {
-    USE_LDO                                 = 0x00, // default
-    USE_DCDC                                = 0x01,
-}RadioRegulatorMode_t;
+    SX126X_USE_LDO                                 = 0x00, // default
+    SX126X_USE_DCDC                                = 0x01,
+}SX126X_RadioRegulatorSX126X_MODE_t;
 
 /*!
  * \brief Represents the possible packet type (i.e. modem) used
  */
 typedef enum
 {
-    PACKET_TYPE_GFSK                        = 0x00,
-    PACKET_TYPE_LORA                        = 0x01,
-    PACKET_TYPE_NONE                        = 0x0F,
-}RadioPacketTypes_t;
+    SX126X_PACKET_TYPE_GFSK                        = 0x00,
+    SX126X_PACKET_TYPE_LORA                        = 0x01,
+    SX126X_PACKET_TYPE_NONE                        = 0x0F,
+}SX126X_RadioPacketTypes_t;
 
 /*!
  * \brief Represents the ramping time for power amplifier
  */
 typedef enum
 {
-    RADIO_RAMP_10_US                        = 0x00,
-    RADIO_RAMP_20_US                        = 0x01,
-    RADIO_RAMP_40_US                        = 0x02,
-    RADIO_RAMP_80_US                        = 0x03,
-    RADIO_RAMP_200_US                       = 0x04,
-    RADIO_RAMP_800_US                       = 0x05,
-    RADIO_RAMP_1700_US                      = 0x06,
-    RADIO_RAMP_3400_US                      = 0x07,
-}RadioRampTimes_t;
+    SX126X_RADIO_RAMP_10_US                        = 0x00,
+    SX126X_RADIO_RAMP_20_US                        = 0x01,
+    SX126X_RADIO_RAMP_40_US                        = 0x02,
+    SX126X_RADIO_RAMP_80_US                        = 0x03,
+    SX126X_RADIO_RAMP_200_US                       = 0x04,
+    SX126X_RADIO_RAMP_800_US                       = 0x05,
+    SX126X_RADIO_RAMP_1700_US                      = 0x06,
+    SX126X_RADIO_RAMP_3400_US                      = 0x07,
+}SX126X_RadioRampTimes_t;
 
 /*!
  * \brief Represents the number of symbols to be used for channel activity detection operation
  */
 typedef enum
 {
-    LORA_CAD_01_SYMBOL                      = 0x00,
-    LORA_CAD_02_SYMBOL                      = 0x01,
-    LORA_CAD_04_SYMBOL                      = 0x02,
-    LORA_CAD_08_SYMBOL                      = 0x03,
-    LORA_CAD_16_SYMBOL                      = 0x04,
-}RadioLoRaCadSymbols_t;
+    SX126X_LORA_CAD_01_SYMBOL                      = 0x00,
+    SX126X_LORA_CAD_02_SYMBOL                      = 0x01,
+    SX126X_LORA_CAD_04_SYMBOL                      = 0x02,
+    SX126X_LORA_CAD_08_SYMBOL                      = 0x03,
+    SX126X_LORA_CAD_16_SYMBOL                      = 0x04,
+}SX126X_RadioLoRaCadSymbols_t;
 
 /*!
  * \brief Represents the Channel Activity Detection actions after the CAD operation is finished
  */
 typedef enum
 {
-    LORA_CAD_ONLY                           = 0x00,
-    LORA_CAD_RX                             = 0x01,
-    LORA_CAD_LBT                            = 0x10,
-}RadioCadExitModes_t;
+    SX126X_LORA_CAD_ONLY                           = 0x00,
+    SX126X_LORA_CAD_RX                             = 0x01,
+    SX126X_LORA_CAD_LBT                            = 0x10,
+}SX126X_RadioCadExitModes_t;
 
 /*!
  * \brief Represents the modulation shaping parameter
  */
 typedef enum
 {
-    MOD_SHAPING_OFF                         = 0x00,
-    MOD_SHAPING_G_BT_03                     = 0x08,
-    MOD_SHAPING_G_BT_05                     = 0x09,
-    MOD_SHAPING_G_BT_07                     = 0x0A,
-    MOD_SHAPING_G_BT_1                      = 0x0B,
-}RadioModShapings_t;
+    SX126X_MOD_SHAPING_OFF                         = 0x00,
+    SX126X_MOD_SHAPING_G_BT_03                     = 0x08,
+    SX126X_MOD_SHAPING_G_BT_05                     = 0x09,
+    SX126X_MOD_SHAPING_G_BT_07                     = 0x0A,
+    SX126X_MOD_SHAPING_G_BT_1                      = 0x0B,
+}SX126X_RadioModShapings_t;
 
 /*!
  * \brief Represents the modulation shaping parameter
@@ -327,71 +338,71 @@ typedef enum
     RX_BW_312000                            = 0x19,
     RX_BW_373600                            = 0x11,
     RX_BW_467000                            = 0x09,
-}RadioRxBandwidth_t;
+}SX126X_RadioRxBandwidth_t;
 
 /*!
  * \brief Represents the possible spreading factor values in LoRa packet types
  */
 typedef enum
 {
-    LORA_SF5                                = 0x05,
-    LORA_SF6                                = 0x06,
-    LORA_SF7                                = 0x07,
-    LORA_SF8                                = 0x08,
-    LORA_SF9                                = 0x09,
-    LORA_SF10                               = 0x0A,
-    LORA_SF11                               = 0x0B,
-    LORA_SF12                               = 0x0C,
-}RadioLoRaSpreadingFactors_t;
+    SX126X_LORA_SF5                                = 0x05,
+    SX126X_LORA_SF6                                = 0x06,
+    SX126X_LORA_SF7                                = 0x07,
+    SX126X_LORA_SF8                                = 0x08,
+    SX126X_LORA_SF9                                = 0x09,
+    SX126X_LORA_SF10                               = 0x0A,
+    SX126X_LORA_SF11                               = 0x0B,
+    SX126X_LORA_SF12                               = 0x0C,
+}SX126X_RadioLoRaSpreadingFactors_t;
 
 /*!
  * \brief Represents the bandwidth values for LoRa packet type
  */
 typedef enum
 {
-    LORA_BW_500                             = 6,
-    LORA_BW_250                             = 5,
-    LORA_BW_125                             = 4,
-    LORA_BW_062                             = 3,
-    LORA_BW_041                             = 10,
-    LORA_BW_031                             = 2,
-    LORA_BW_020                             = 9,
-    LORA_BW_015                             = 1,
-    LORA_BW_010                             = 8,
-    LORA_BW_007                             = 0,
-}RadioLoRaBandwidths_t;
+    SX126X_LORA_BW_500                             = 6,
+    SX126X_LORA_BW_250                             = 5,
+    SX126X_LORA_BW_125                             = 4,
+    SX126X_LORA_BW_062                             = 3,
+    SX126X_LORA_BW_041                             = 10,
+    SX126X_LORA_BW_031                             = 2,
+    SX126X_LORA_BW_020                             = 9,
+    SX126X_LORA_BW_015                             = 1,
+    SX126X_LORA_BW_010                             = 8,
+    SX126X_LORA_BW_007                             = 0,
+}SX126X_RadioLoRaBandwidths_t;
 
 /*!
  * \brief Represents the coding rate values for LoRa packet type
  */
 typedef enum
 {
-    LORA_CR_4_5                             = 0x01,
-    LORA_CR_4_6                             = 0x02,
-    LORA_CR_4_7                             = 0x03,
-    LORA_CR_4_8                             = 0x04,
-}RadioLoRaCodingRates_t;
+    SX126X_LORA_CR_4_5                             = 0x01,
+    SX126X_LORA_CR_4_6                             = 0x02,
+    SX126X_LORA_CR_4_7                             = 0x03,
+    SX126X_LORA_CR_4_8                             = 0x04,
+}SX126X_RadioLoRaCodingRates_t;
 
 /*!
  * \brief Represents the preamble length used to detect the packet on Rx side
  */
 typedef enum
 {
-    RADIO_PREAMBLE_DETECTOR_OFF             = 0x00,         //!< Preamble detection length off
-    RADIO_PREAMBLE_DETECTOR_08_BITS         = 0x04,         //!< Preamble detection length 8 bits
-    RADIO_PREAMBLE_DETECTOR_16_BITS         = 0x05,         //!< Preamble detection length 16 bits
-    RADIO_PREAMBLE_DETECTOR_24_BITS         = 0x06,         //!< Preamble detection length 24 bits
-    RADIO_PREAMBLE_DETECTOR_32_BITS         = 0x07,         //!< Preamble detection length 32 bit
-}RadioPreambleDetection_t;
+    SX126X_RADIO_PREAMBLE_DETECTOR_OFF             = 0x00,         //!< Preamble detection length off
+    SX126X_RADIO_PREAMBLE_DETECTOR_08_BITS         = 0x04,         //!< Preamble detection length 8 bits
+    SX126X_RADIO_PREAMBLE_DETECTOR_16_BITS         = 0x05,         //!< Preamble detection length 16 bits
+    SX126X_RADIO_PREAMBLE_DETECTOR_24_BITS         = 0x06,         //!< Preamble detection length 24 bits
+    SX126X_RADIO_PREAMBLE_DETECTOR_32_BITS         = 0x07,         //!< Preamble detection length 32 bit
+}SX126X_RadioPreambleDetection_t;
 
 /*!
  * \brief Represents the possible combinations of SyncWord correlators activated
  */
 typedef enum
 {
-    RADIO_ADDRESSCOMP_FILT_OFF              = 0x00,         //!< No correlator turned on, i.e. do not search for SyncWord
-    RADIO_ADDRESSCOMP_FILT_NODE             = 0x01,
-    RADIO_ADDRESSCOMP_FILT_NODE_BROAD       = 0x02,
+    SX126X_RADIO_ADDRESSCOMP_FILT_OFF              = 0x00,         //!< No correlator turned on, i.e. do not search for SyncWord
+    SX126X_RADIO_ADDRESSCOMP_FILT_NODE             = 0x01,
+    SX126X_RADIO_ADDRESSCOMP_FILT_NODE_BROAD       = 0x02,
 }RadioAddressComp_t;
 
 /*!
@@ -399,76 +410,76 @@ typedef enum
  */
 typedef enum
 {
-    RADIO_PACKET_FIXED_LENGTH               = 0x00,         //!< The packet is known on both sides, no header included in the packet
-    RADIO_PACKET_VARIABLE_LENGTH            = 0x01,         //!< The packet is on variable size, header included
-}RadioPacketLengthModes_t;
+    SX126X_RADIO_PACKET_FIXED_LENGTH               = 0x00,         //!< The packet is known on both sides, no header included in the packet
+    SX126X_RADIO_PACKET_VARIABLE_LENGTH            = 0x01,         //!< The packet is on variable size, header included
+}SX126X_RadioPacketLengthModes_t;
 
 /*!
  * \brief Represents the CRC length
  */
 typedef enum
 {
-    RADIO_CRC_OFF                           = 0x01,         //!< No CRC in use
-    RADIO_CRC_1_BYTES                       = 0x00,
-    RADIO_CRC_2_BYTES                       = 0x02,
-    RADIO_CRC_1_BYTES_INV                   = 0x04,
-    RADIO_CRC_2_BYTES_INV                   = 0x06,
-    RADIO_CRC_2_BYTES_IBM                   = 0xF1,
-    RADIO_CRC_2_BYTES_CCIT                  = 0xF2,
-}RadioCrcTypes_t;
+    SX126X_RADIO_CRC_OFF                           = 0x01,         //!< No CRC in use
+    SX126X_RADIO_CRC_1_BYTES                       = 0x00,
+    SX126X_RADIO_CRC_2_BYTES                       = 0x02,
+    SX126X_RADIO_CRC_1_BYTES_INV                   = 0x04,
+    SX126X_RADIO_CRC_2_BYTES_INV                   = 0x06,
+    SX126X_RADIO_CRC_2_BYTES_IBM                   = 0xF1,
+    SX126X_RADIO_CRC_2_BYTES_CCIT                  = 0xF2,
+}SX126X_RadioCrcTypes_t;
 
 /*!
  * \brief Radio whitening mode activated or deactivated
  */
 typedef enum
 {
-    RADIO_DC_FREE_OFF                       = 0x00,
-    RADIO_DC_FREEWHITENING                  = 0x01,
-}RadioDcFree_t;
+    SX126X_RADIO_DC_FREE_OFF                       = 0x00,
+    SX126X_RADIO_DC_FREEWHITENING                  = 0x01,
+}SX126X_RadioDcFree_t;
 
 /*!
  * \brief Holds the Radio lengths mode for the LoRa packet type
  */
 typedef enum
 {
-    LORA_PACKET_VARIABLE_LENGTH             = 0x00,         //!< The packet is on variable size, header included
-    LORA_PACKET_FIXED_LENGTH                = 0x01,         //!< The packet is known on both sides, no header included in the packet
-    LORA_PACKET_EXPLICIT                    = LORA_PACKET_VARIABLE_LENGTH,
-    LORA_PACKET_IMPLICIT                    = LORA_PACKET_FIXED_LENGTH,
-}RadioLoRaPacketLengthsMode_t;
+    SX126X_LORA_PACKET_VARIABLE_LENGTH             = 0x00,         //!< The packet is on variable size, header included
+    SX126X_LORA_PACKET_FIXED_LENGTH                = 0x01,         //!< The packet is known on both sides, no header included in the packet
+    SX126X_LORA_PACKET_EXPLICIT                    = SX126X_LORA_PACKET_VARIABLE_LENGTH,
+    SX126X_LORA_PACKET_IMPLICIT                    = SX126X_LORA_PACKET_FIXED_LENGTH,
+}SX126X_RadioLoRaPacketLengthsModes_t;
 
 /*!
  * \brief Represents the CRC mode for LoRa packet type
  */
 typedef enum
 {
-    LORA_CRC_ON                             = 0x01,         //!< CRC activated
-    LORA_CRC_OFF                            = 0x00,         //!< CRC not used
-}RadioLoRaCrcModes_t;
+    SX126X_LORA_CRC_ON                             = 0x01,         //!< CRC activated
+    SX126X_LORA_CRC_OFF                            = 0x00,         //!< CRC not used
+}SX126X_RadioLoRaCrcModes_t;
 
 /*!
  * \brief Represents the IQ mode for LoRa packet type
  */
 typedef enum
 {
-    LORA_IQ_NORMAL                          = 0x00,
-    LORA_IQ_INVERTED                        = 0x01,
-}RadioLoRaIQModes_t;
+    SX126X_LORA_IQ_NORMAL                          = 0x00,
+    SX126X_LORA_IQ_INVERTED                        = 0x01,
+}SX126X_RadioLoRaIQModes_t;
 
 /*!
  * \brief Represents the voltage used to control the TCXO on/off from DIO3
  */
 typedef enum
 {
-    TCXO_CTRL_1_6V                          = 0x00,
-    TCXO_CTRL_1_7V                          = 0x01,
-    TCXO_CTRL_1_8V                          = 0x02,
-    TCXO_CTRL_2_2V                          = 0x03,
-    TCXO_CTRL_2_4V                          = 0x04,
-    TCXO_CTRL_2_7V                          = 0x05,
-    TCXO_CTRL_3_0V                          = 0x06,
-    TCXO_CTRL_3_3V                          = 0x07,
-}RadioTcxoCtrlVoltage_t;
+    SX126X_TCXO_CTRL_1_6V                          = 0x00,
+    SX126X_TCXO_CTRL_1_7V                          = 0x01,
+    SX126X_TCXO_CTRL_1_8V                          = 0x02,
+    SX126X_TCXO_CTRL_2_2V                          = 0x03,
+    SX126X_TCXO_CTRL_2_4V                          = 0x04,
+    SX126X_TCXO_CTRL_2_7V                          = 0x05,
+    SX126X_TCXO_CTRL_3_0V                          = 0x06,
+    SX126X_TCXO_CTRL_3_3V                          = 0x07,
+}SX126X_RadioTcxoCtrlVoltage_t;
 
 /*!
  * \brief Represents the interruption masks available for the radio
@@ -477,18 +488,18 @@ typedef enum
  */
 typedef enum
 {
-    IRQ_RADIO_NONE                          = 0x0000,
-    IRQ_TX_DONE                             = 0x0001,
-    IRQ_RX_DONE                             = 0x0002,
-    IRQ_PREAMBLE_DETECTED                   = 0x0004,
-    IRQ_SYNCWORD_VALID                      = 0x0008,
-    IRQ_HEADER_VALID                        = 0x0010,
-    IRQ_HEADER_ERROR                        = 0x0020,
-    IRQ_CRC_ERROR                           = 0x0040,
-    IRQ_CAD_DONE                            = 0x0080,
-    IRQ_CAD_ACTIVITY_DETECTED               = 0x0100,
-    IRQ_RX_TX_TIMEOUT                       = 0x0200,
-    IRQ_RADIO_ALL                           = 0xFFFF,
+    SX126X_IRQ_RADIO_NONE                          = 0x0000,
+    SX126X_IRQ_TX_DONE                             = 0x0001,
+    SX126X_IRQ_RX_DONE                             = 0x0002,
+    SX126X_IRQ_PREAMBLE_DETECTED                   = 0x0004,
+    SX126X_IRQ_SYNCWORD_VALID                      = 0x0008,
+    SX126X_IRQ_HEADER_VALID                        = 0x0010,
+    SX126X_IRQ_HEADER_ERROR                        = 0x0020,
+    SX126X_IRQ_CRC_ERROR                           = 0x0040,
+    SX126X_IRQ_CAD_DONE                            = 0x0080,
+    SX126X_IRQ_CAD_ACTIVITY_DETECTED               = 0x0100,
+    SX126X_IRQ_RX_TX_TIMEOUT                       = 0x0200,
+    SX126X_IRQ_RADIO_ALL                           = 0xFFFF,
 }RadioIrqMasks_t;
 
 /*!
@@ -496,52 +507,53 @@ typedef enum
  */
 typedef enum RadioCommands_e
 {
-    RADIO_GET_STATUS                        = 0xC0,
-    RADIO_WRITE_REGISTER                    = 0x0D,
-    RADIO_READ_REGISTER                     = 0x1D,
-    RADIO_WRITE_BUFFER                      = 0x0E,
-    RADIO_READ_BUFFER                       = 0x1E,
-    RADIO_SET_SLEEP                         = 0x84,
-    RADIO_SET_STANDBY                       = 0x80,
-    RADIO_SET_FS                            = 0xC1,
-    RADIO_SET_TX                            = 0x83,
-    RADIO_SET_RX                            = 0x82,
-    RADIO_SET_RXDUTYCYCLE                   = 0x94,
-    RADIO_SET_CAD                           = 0xC5,
-    RADIO_SET_TXCONTINUOUSWAVE              = 0xD1,
-    RADIO_SET_TXCONTINUOUSPREAMBLE          = 0xD2,
-    RADIO_SET_PACKETTYPE                    = 0x8A,
-    RADIO_GET_PACKETTYPE                    = 0x11,
-    RADIO_SET_RFFREQUENCY                   = 0x86,
-    RADIO_SET_TXPARAMS                      = 0x8E,
-    RADIO_SET_PACONFIG                      = 0x95,
-    RADIO_SET_CADPARAMS                     = 0x88,
-    RADIO_SET_BUFFERBASEADDRESS             = 0x8F,
-    RADIO_SET_MODULATIONPARAMS              = 0x8B,
-    RADIO_SET_PACKETPARAMS                  = 0x8C,
-    RADIO_GET_RXBUFFERSTATUS                = 0x13,
-    RADIO_GET_PACKETSTATUS                  = 0x14,
-    RADIO_GET_RSSIINST                      = 0x15,
-    RADIO_GET_STATS                         = 0x10,
-    RADIO_RESET_STATS                       = 0x00,
-    RADIO_CFG_DIOIRQ                        = 0x08,
-    RADIO_GET_IRQSTATUS                     = 0x12,
-    RADIO_CLR_IRQSTATUS                     = 0x02,
-    RADIO_CALIBRATE                         = 0x89,
-    RADIO_CALIBRATEIMAGE                    = 0x98,
-    RADIO_SET_REGULATORMODE                 = 0x96,
-    RADIO_GET_ERROR                         = 0x17,
-    RADIO_CLR_ERROR                         = 0x07,
-    RADIO_SET_TCXOMODE                      = 0x97,
-    RADIO_SET_TXFALLBACKMODE                = 0x93,
-    RADIO_SET_RFSWITCHMODE                  = 0x9D,
-    RADIO_SET_STOPRXTIMERONPREAMBLE         = 0x9F,
-    RADIO_SET_LORASYMBTIMEOUT               = 0xA0,
-}RadioCommands_t;
+    SX126X_RADIO_GET_STATUS                        = 0xC0,
+    SX126X_RADIO_WRITE_REGISTER                    = 0x0D,
+    SX126X_RADIO_READ_REGISTER                     = 0x1D,
+    SX126X_RADIO_WRITE_BUFFER                      = 0x0E,
+    SX126X_RADIO_READ_BUFFER                       = 0x1E,
+    SX126X_RADIO_SET_SLEEP                         = 0x84,
+    SX126X_RADIO_SET_STANDBY                       = 0x80,
+    SX126X_RADIO_SET_FS                            = 0xC1,
+    SX126X_RADIO_SET_TX                            = 0x83,
+    SX126X_RADIO_SET_RX                            = 0x82,
+    SX126X_RADIO_SET_RXDUTYCYCLE                   = 0x94,
+    SX126X_RADIO_SET_CAD                           = 0xC5,
+    SX126X_RADIO_SET_TXCONTINUOUSWAVE              = 0xD1,
+    SX126X_RADIO_SET_TXCONTINUOUSPREAMBLE          = 0xD2,
+    SX126X_RADIO_SET_PACKETTYPE                    = 0x8A,
+    SX126X_RADIO_GET_PACKETTYPE                    = 0x11,
+    SX126X_RADIO_SET_RFFREQUENCY                   = 0x86,
+    SX126X_RADIO_SET_TXPARAMS                      = 0x8E,
+    SX126X_RADIO_SET_PACONFIG                      = 0x95,
+    SX126X_RADIO_SET_CADPARAMS                     = 0x88,
+    SX126X_RADIO_SET_BUFFERBASEADDRESS             = 0x8F,
+    SX126X_RADIO_SET_MODULATIONPARAMS              = 0x8B,
+    SX126X_RADIO_SET_PACKETPARAMS                  = 0x8C,
+    SX126X_RADIO_GET_RXBUFFERSTATUS                = 0x13,
+    SX126X_RADIO_GET_PACKETSTATUS                  = 0x14,
+    SX126X_RADIO_GET_RSSIINST                      = 0x15,
+    SX126X_RADIO_GET_STATS                         = 0x10,
+    SX126X_RADIO_RESET_STATS                       = 0x00,
+    SX126X_RADIO_SET_DIOIRQPARAMS                  = 0x08,
+    SX126X_RADIO_GET_IRQSTATUS                     = 0x12,
+    SX126X_RADIO_CLR_IRQSTATUS                     = 0x02,
+    SX126X_RADIO_CALIBRATE                         = 0x89,
+    SX126X_RADIO_CALIBRATEIMAGE                    = 0x98,
+    SX126X_RADIO_SET_REGULATORMODE                 = 0x96,
+    SX126X_RADIO_GET_ERROR                         = 0x17,
+    SX126X_RADIO_CLR_ERROR                         = 0x07,
+    SX126X_RADIO_SET_TCXOMODE                      = 0x97,
+    SX126X_RADIO_SET_TXFALLBACKMODE                = 0x93,
+    SX126X_RADIO_SET_RFSWITCHMODE                  = 0x9D,
+    SX126X_RADIO_SET_STOPRXTIMERONPREAMBLE         = 0x9F,
+    SX126X_RADIO_SET_LORASYMBTIMEOUT               = 0xA0,
+}SX126X_RadioCommands_t;
 
 /*!
  * \brief The type describing the modulation parameters for every packet types
  */
+ /*
 typedef struct
 {
     RadioPacketTypes_t                   PacketType;        //!< Packet to which the modulation parameters are referring to.
@@ -564,17 +576,18 @@ typedef struct
     }Params;                                                //!< Holds the modulation parameters structure
 }ModulationParams_t;
 
+*/
 /*!
  * \brief The type describing the packet parameters for every packet types
  */
+ 
+/*
 typedef struct
 {
     RadioPacketTypes_t                    PacketType;        //!< Packet to which the packet parameters are referring to.
     struct
     {
-        /*!
-         * \brief Holds the GFSK packet parameters
-         */
+
         struct
         {
             uint16_t                     PreambleLength;    //!< The preamble Tx length for GFSK packet type in bit
@@ -586,23 +599,22 @@ typedef struct
             RadioCrcTypes_t              CrcLength;         //!< Size of the CRC block in the GFSK packet
             RadioDcFree_t                DcFree;
         }Gfsk;
-        /*!
-         * \brief Holds the LoRa packet parameters
-         */
+
         struct
         {
             uint16_t                     PreambleLength;    //!< The preamble length is the number of LoRa symbols in the preamble
-            RadioLoRaPacketLengthsMode_t HeaderType;        //!< If the header is explicit, it will be transmitted in the LoRa packet. If the header is implicit, it will not be transmitted
+            SX126X_RadioLoRaPacketLengthsModes_t HeaderType;        //!< If the header is explicit, it will be transmitted in the LoRa packet. If the header is implicit, it will not be transmitted
             uint8_t                      PayloadLength;     //!< Size of the payload in the LoRa packet
             RadioLoRaCrcModes_t          CrcMode;           //!< Size of CRC block in LoRa packet
             RadioLoRaIQModes_t           InvertIQ;          //!< Allows to swap IQ for LoRa packet
         }LoRa;
     }Params;                                                //!< Holds the packet parameters structure
 }PacketParams_t;
-
+*/
 /*!
  * \brief Represents the packet status for every packet type
  */
+ /*
 typedef struct
 {
     RadioPacketTypes_t                    packetType;      //!< Packet to which the packet status are referring to.
@@ -624,10 +636,11 @@ typedef struct
         }LoRa;
     }Params;
 }PacketStatus_t;
-
+*/
 /*!
  * \brief Represents the Rx internal counters values when GFSK or LoRa packet type is used
  */
+ /*
 typedef struct
 {
     RadioPacketTypes_t                    packetType;       //!< Packet to which the packet status are referring to.
@@ -635,7 +648,7 @@ typedef struct
     uint16_t CrcOk;
     uint16_t LengthError;
 }RxCounter_t;
-
+*/
 /*!
  * \brief Represents a calibration configuration
  */
@@ -673,6 +686,17 @@ typedef union
 /*!
  * \brief Represents the possible radio system error states
  */
+ 
+//SX126X_CMD_GET_DEVICE_ERRORS
+#define SX126X_PA_RAMP_ERR                           0b100000000  //  8     8     device errors: PA ramping failed
+#define SX126X_PLL_LOCK_ERR                          0b001000000  //  6     6                    PLL failed to lock
+#define SX126X_XOSC_START_ERR                        0b000100000  //  5     5                    crystal oscillator failed to start
+#define SX126X_IMG_CALIB_ERR                         0b000010000  //  4     4                    image calibration failed
+#define SX126X_ADC_CALIB_ERR                         0b000001000  //  3     3                    ADC calibration failed
+#define SX126X_PLL_CALIB_ERR                         0b000000100  //  2     2                    PLL calibration failed
+#define SX126X_RC13M_CALIB_ERR                       0b000000010  //  1     1                    RC13M calibration failed
+#define SX126X_RC64K_CALIB_ERR                       0b000000001  //  0     0                    RC64K calibration failed
+ 
 typedef union
 {
     struct
@@ -694,6 +718,7 @@ typedef union
 /*!
  * Radio hardware and global parameters
  */
+ /*
 typedef struct SX126x_s
 {
     //Gpio_t        Reset;
@@ -706,6 +731,9 @@ typedef struct SX126x_s
     PacketStatus_t PacketStatus;
     ModulationParams_t ModulationParams;
 }SX126x_t;
+
+extern SX126x_t SX126x;
+*/
 
 /*!
  * Hardware IO IRQ callback function definition
@@ -727,10 +755,12 @@ typedef void ( DioIrqHandler )( void );
 
 #define RX_BUFFER_SIZE                              256
 
+
 /*!
  * \brief The radio callbacks structure
  * Holds function pointers to be called on radio interrupts
  */
+ /*
 typedef struct
 {
     void ( *txDone )( void );                       //!< Pointer to a function run on successful transmission
@@ -743,6 +773,7 @@ typedef struct
     void ( *rxError )( IrqErrorCode_t errCode );    //!< Pointer to a function run on reception error
     void ( *cadDone )( bool cadFlag );              //!< Pointer to a function run on channel activity detected
 }SX126xCallbacks_t;
+*/
 
 /*!
  * ============================================================================
@@ -753,23 +784,23 @@ typedef struct
 /*!
  * \brief Initializes the radio driver
  */
-void SX126xInit( );
+//void SX126xInit( );
 
 /*!
  * \brief Gets the current Operation Mode of the Radio
  *
  * \retval      RadioOperatingModes_t last operating mode
  */
-RadioOperatingModes_t SX126xGetOperatingMode( void );
+//RadioOperatingModes_t SX126xGetOperatingMode( void );
 /*!
  * \brief Sets the current Operation Mode of the Radio
  * 
  */
-void SX126xSetOperatingMode(RadioOperatingModes_t mode);
+//void SX126xSetOperatingMode(RadioOperatingModes_t mode);
 /*!
  * \brief Wakeup the radio if it is in Sleep mode and check that Busy is low
  */
-void SX126xCheckDeviceReady( void );
+//void SX126xCheckDeviceReady( void );
 
 /*!
  * \brief Saves the payload to be send in the radio buffer
@@ -777,7 +808,7 @@ void SX126xCheckDeviceReady( void );
  * \param [in]  payload       A pointer to the payload
  * \param [in]  size          The size of the payload
  */
-void SX126xSetPayload( uint8_t *payload, uint8_t size );
+//void SX126xSetPayload( uint8_t *payload, uint8_t size );
 
 /*!
  * \brief Reads the payload received. If the received payload is longer
@@ -787,7 +818,7 @@ void SX126xSetPayload( uint8_t *payload, uint8_t size );
  * \param [out] size          A pointer to the size of the payload received
  * \param [in]  maxSize       The maximal size allowed to copy into the buffer
  */
-uint8_t SX126xGetPayload( uint8_t *payload, uint8_t *size, uint8_t maxSize );
+//uint8_t SX126xGetPayload( uint8_t *payload, uint8_t *size, uint8_t maxSize );
 
 /*!
  * \brief Sends a payload
@@ -796,7 +827,7 @@ uint8_t SX126xGetPayload( uint8_t *payload, uint8_t *size, uint8_t maxSize );
  * \param [in]  size          The size of the payload to send
  * \param [in]  timeout       The timeout for Tx operation
  */
-void SX126xSendPayload( uint8_t *payload, uint8_t size, uint32_t timeout );
+//void SX126xSendPayload( uint8_t *payload, uint8_t size, uint32_t timeout );
 
 /*!
  * \brief Sets the Sync Word given by index used in GFSK
@@ -805,7 +836,7 @@ void SX126xSendPayload( uint8_t *payload, uint8_t size, uint32_t timeout );
  *
  * \retval      status        [0: OK, 1: NOK]
  */
-uint8_t SX126xSetSyncWord( uint8_t *syncWord );
+//uint8_t SX126xSetSyncWord( uint8_t syncWord );
 
 /*!
  * \brief Sets the Initial value for the LFSR used for the CRC calculation
@@ -813,7 +844,7 @@ uint8_t SX126xSetSyncWord( uint8_t *syncWord );
  * \param [in]  seed          Initial LFSR value ( 2 bytes )
  *
  */
-void SX126xSetCrcSeed( uint16_t seed );
+//void SX126xSetCrcSeed( uint16_t seed );
 
 /*!
  * \brief Sets the seed used for the CRC calculation
@@ -821,14 +852,14 @@ void SX126xSetCrcSeed( uint16_t seed );
  * \param [in]  seed          The seed value
  *
  */
-void SX126xSetCrcPolynomial( uint16_t polynomial );
+//void SX126xSetCrcPolynomial( uint16_t polynomial );
 
 /*!
  * \brief Sets the Initial value of the LFSR used for the whitening in GFSK protocols
  *
  * \param [in]  seed          Initial LFSR value
  */
-void SX126xSetWhiteningSeed( uint16_t seed );
+//void SX126xSetWhiteningSeed( uint16_t seed );
 
 /*!
  * \brief Gets a 32 bits random value generated by the radio
@@ -837,7 +868,7 @@ void SX126xSetWhiteningSeed( uint16_t seed );
  *
  * \retval randomValue    32 bits random value
  */
-uint32_t SX126xGetRandom( void );
+//uint32_t SX126xGetRandom( void );
 
 /*!
  * \brief Sets the radio in sleep mode
@@ -845,40 +876,40 @@ uint32_t SX126xGetRandom( void );
  * \param [in]  sleepConfig   The sleep configuration describing data
  *                            retention and RTC wake-up
  */
-void SX126xSetSleep( SleepParams_t sleepConfig );
+//void SX126xSetSleep( SleepParams_t sleepConfig );
 
 /*!
  * \brief Sets the radio in configuration mode
  *
  * \param [in]  mode          The standby mode to put the radio into
  */
-void SX126xSetStandby( RadioStandbyModes_t mode );
+//void SX126xSetStandby( RadioStandbyModes_t mode );
 
 /*!
  * \brief Sets the radio in FS mode
  */
-void SX126xSetFs( void );
+//void SX126xSetFs( void );
 
 /*!
  * \brief Sets the radio in transmission mode
  *
  * \param [in]  timeout       Structure describing the transmission timeout value
  */
-void SX126xSetTx( uint32_t timeout );
+//void SX126xSetTx( uint32_t timeout );
 
 /*!
  * \brief Sets the radio in reception mode
  *
  * \param [in]  timeout       Structure describing the reception timeout value
  */
-void SX126xSetRx( uint32_t timeout );
+//void SX126xSetRx( uint32_t timeout );
 
 /*!
  * \brief Sets the radio in reception mode with Boosted LNA gain
  *
  * \param [in]  timeout       Structure describing the reception timeout value
  */
-void SX126xSetRxBoosted( uint32_t timeout );
+//void SX126xSetRxBoosted( uint32_t timeout );
 
 /*!
  * \brief Sets the Rx duty cycle management parameters
@@ -886,22 +917,22 @@ void SX126xSetRxBoosted( uint32_t timeout );
  * \param [in]  rxTime        Structure describing reception timeout value
  * \param [in]  sleepTime     Structure describing sleep timeout value
  */
-void SX126xSetRxDutyCycle( uint32_t rxTime, uint32_t sleepTime );
+//void SX126xSetRxDutyCycle( uint32_t rxTime, uint32_t sleepTime );
 
 /*!
  * \brief Sets the radio in CAD mode
  */
-void SX126xSetCad( void );
+//void SX126xSetCad( void );
 
 /*!
  * \brief Sets the radio in continuous wave transmission mode
  */
-void SX126xSetTxContinuousWave( void );
+//void SX126xSetTxContinuousWave( void );
 
 /*!
  * \brief Sets the radio in continuous preamble transmission mode
  */
-void SX126xSetTxInfinitePreamble( void );
+//void SX126xSetTxInfinitePreamble( void );
 
 /*!
  * \brief Decide which interrupt will stop the internal radio rx timer.
@@ -909,42 +940,42 @@ void SX126xSetTxInfinitePreamble( void );
  * \param [in]  enable          [0: Timer stop after header/syncword detection
  *                               1: Timer stop after preamble detection]
  */
-void SX126xSetStopRxTimerOnPreambleDetect( bool enable );
+//void SX126xSetStopRxTimerOnPreambleDetect( bool enable );
 
 /*!
  * \brief Set the number of symbol the radio will wait to validate a reception
  *
  * \param [in]  SymbNum          number of LoRa symbols
  */
-void SX126xSetLoRaSymbNumTimeout( uint8_t SymbNum );
+//void SX126xSetLoRaSymbNumTimeout( uint8_t SymbNum );
 
 /*!
  * \brief Sets the power regulators operating mode
  *
  * \param [in]  mode          [0: LDO, 1:DC_DC]
  */
-void SX126xSetRegulatorMode( RadioRegulatorMode_t mode );
+//void SX126xSetRegulatorMode( RadioRegulatorSX126X_MODE_t mode );
 
 /*!
  * \brief Calibrates the given radio block
  *
  * \param [in]  calibParam    The description of blocks to be calibrated
  */
-void SX126xCalibrate( CalibrationParams_t calibParam );
+//void SX126xCalibrate( CalibrationParams_t calibParam );
 
 /*!
  * \brief Calibrates the Image rejection depending of the frequency
  *
  * \param [in]  freq    The operating frequency
  */
-void SX126xCalibrateImage( uint32_t freq );
+//void SX126xCalibrateImage( uint32_t freq );
 
 /*!
  * \brief Activate the extention of the timeout when long preamble is used
  *
  * \param [in]  enable      The radio will extend the timeout to cope with long preamble
  */
-void SX126xSetLongPreamble( uint8_t enable );
+//void SX126xSetLongPreamble( uint8_t enable );
 
 /*!
  * \brief Sets the transmission parameters
@@ -954,14 +985,14 @@ void SX126xSetLongPreamble( uint8_t enable );
  * \param [in]  deviceSel       1 for sx1261, 0 for sx1262
  * \param [in]  paLut           0 for 14dBm LUT, 1 for 22dBm LUT
  */
-void SX126xSetPaConfig( uint8_t paDutyCycle, uint8_t hpMax, uint8_t deviceSel, uint8_t paLut );
+//void SX126xSetPaConfig( uint8_t paDutyCycle, uint8_t hpMax, uint8_t deviceSel, uint8_t paLut );
 
 /*!
  * \brief Defines into which mode the chip goes after a TX / RX done
  *
  * \param [in]  fallbackMode    The mode in which the radio goes
  */
-void SX126xSetRxTxFallbackMode( uint8_t fallbackMode );
+//void SX126xSetRxTxFallbackMode( uint8_t fallbackMode );
 
 /*!
  * \brief Write data to the radio memory
@@ -970,7 +1001,7 @@ void SX126xSetRxTxFallbackMode( uint8_t fallbackMode );
  * \param [in]  buffer        The data to be written in radio's memory
  * \param [in]  size          The number of bytes to write in radio's memory
  */
-void SX126xWriteRegisters( uint16_t address, uint8_t *buffer, uint16_t size );
+//void SX126xWriteRegisters( uint16_t address, uint8_t *buffer, uint16_t size );
 
 /*!
  * \brief Read data from the radio memory
@@ -979,7 +1010,7 @@ void SX126xWriteRegisters( uint16_t address, uint8_t *buffer, uint16_t size );
  * \param [out] buffer        The buffer that holds data read from radio
  * \param [in]  size          The number of bytes to read from radio's memory
  */
-void SX126xReadRegisters( uint16_t address, uint8_t *buffer, uint16_t size );
+//void SX126xReadRegisters( uint16_t address, uint8_t *buffer, uint16_t size );
 
 /*!
  * \brief Write data to the buffer holding the payload in the radio
@@ -988,7 +1019,7 @@ void SX126xReadRegisters( uint16_t address, uint8_t *buffer, uint16_t size );
  * \param [in]  buffer        The data to be written (the payload)
  * \param [in]  size          The number of byte to be written
  */
-void SX126xWriteBuffer( uint8_t offset, uint8_t *buffer, uint8_t size );
+//void SX126xWriteBuffer( uint8_t offset, uint8_t *buffer, uint8_t size );
 
 /*!
  * \brief Read data from the buffer holding the payload in the radio
@@ -997,7 +1028,7 @@ void SX126xWriteBuffer( uint8_t offset, uint8_t *buffer, uint8_t size );
  * \param [out] buffer        A pointer to a buffer holding the data from the radio
  * \param [in]  size          The number of byte to be read
  */
-void SX126xReadBuffer( uint8_t offset, uint8_t *buffer, uint8_t size );
+//void SX126xReadBuffer( uint8_t offset, uint8_t *buffer, uint8_t size );
 
 /*!
  * \brief   Sets the IRQ mask and DIO masks
@@ -1007,21 +1038,21 @@ void SX126xReadBuffer( uint8_t offset, uint8_t *buffer, uint8_t size );
  * \param [in]  dio2Mask      DIO2 mask
  * \param [in]  dio3Mask      DIO3 mask
  */
-void SX126xSetDioIrqParams( uint16_t irqMask, uint16_t dio1Mask, uint16_t dio2Mask, uint16_t dio3Mask );
+//void SX126xSetDioIrqParams( uint16_t irqMask, uint16_t dio1Mask, uint16_t dio2Mask, uint16_t dio3Mask );
 
 /*!
  * \brief Returns the current IRQ status
  *
  * \retval      irqStatus     IRQ status
  */
-uint16_t SX126xGetIrqStatus( void );
+//uint16_t SX126xGetIrqStatus( void );
 
 /*!
  * \brief Indicates if DIO2 is used to control an RF Switch
  *
  * \param [in] enable     true of false
  */
-void SX126xSetDio2AsRfSwitchCtrl( uint8_t enable );
+//void SX126xSetDio2AsRfSwitchCtrl( uint8_t enable );
 
 /*!
  * \brief Indicates if the Radio main clock is supplied from a tcxo
@@ -1029,14 +1060,14 @@ void SX126xSetDio2AsRfSwitchCtrl( uint8_t enable );
  * \param [in] tcxoVoltage     voltage used to control the TCXO
  * \param [in] timeout         time given to the TCXO to go to 32MHz
  */
-void SX126xSetDio3AsTcxoCtrl( RadioTcxoCtrlVoltage_t tcxoVoltage, uint32_t timeout );
+//void SX126xSetDio3AsTcxoCtrl( RadioTcxoCtrlVoltage_t tcxoVoltage, uint32_t timeout );
 
 /*!
  * \brief Sets the RF frequency
  *
  * \param [in]  frequency     RF frequency [Hz]
  */
-void SX126xSetRfFrequency( uint32_t frequency );
+//void SX126xSetRfFrequency( uint32_t frequency );
 
 /*!
  * \brief Sets the radio for the given protocol
@@ -1046,14 +1077,14 @@ void SX126xSetRfFrequency( uint32_t frequency );
  * \remark This method has to be called before SetRfFrequency,
  *         SetModulationParams and SetPacketParams
  */
-void SX126xSetPacketType( RadioPacketTypes_t packetType );
+//void SX126xSetPacketType( RadioPacketTypes_t packetType );
 
 /*!
  * \brief Gets the current radio protocol
  *
  * \retval      packetType    [PACKET_TYPE_GFSK, PACKET_TYPE_LORA]
  */
-RadioPacketTypes_t SX126xGetPacketType( void );
+//RadioPacketTypes_t SX126xGetPacketType( void );
 
 /*!
  * \brief Sets the transmission parameters
@@ -1061,36 +1092,36 @@ RadioPacketTypes_t SX126xGetPacketType( void );
  * \param [in]  power         RF output power [-18..13] dBm
  * \param [in]  rampTime      Transmission ramp up time
  */
-void SX126xSetTxParams( int8_t power, RadioRampTimes_t rampTime );
+//void SX126xSetTxParams( int8_t power, RadioRampTimes_t rampTime );
 
 /*!
  * \brief Set the modulation parameters
  *
  * \param [in]  modParams     A structure describing the modulation parameters
  */
-void SX126xSetModulationParams( ModulationParams_t *modParams );
+//void SX126xSetModulationParams( ModulationParams_t *modParams );
 
 /*!
  * \brief Sets the packet parameters
  *
  * \param [in]  packetParams  A structure describing the packet parameters
  */
-void SX126xSetPacketParams( PacketParams_t *packetParams );
+//void SX126xSetPacketParams( PacketParams_t *packetParams );
 
 /*!
  * \brief Sets the Channel Activity Detection (CAD) parameters
  *
  * \param [in]  cadSymbolNum   The number of symbol to use for CAD operations
- *                             [LORA_CAD_01_SYMBOL, LORA_CAD_02_SYMBOL,
- *                              LORA_CAD_04_SYMBOL, LORA_CAD_08_SYMBOL,
- *                              LORA_CAD_16_SYMBOL]
+ *                             [SX126X_LORA_CAD_01_SYMBOL, SX126X_LORA_CAD_02_SYMBOL,
+ *                              SX126X_LORA_CAD_04_SYMBOL, SX126X_LORA_CAD_08_SYMBOL,
+ *                              SX126X_LORA_CAD_16_SYMBOL]
  * \param [in]  cadDetPeak     Limit for detection of SNR peak used in the CAD
  * \param [in]  cadDetMin      Set the minimum symbol recognition for CAD
  * \param [in]  cadExitMode    Operation to be done at the end of CAD action
- *                             [LORA_CAD_ONLY, LORA_CAD_RX, LORA_CAD_LBT]
+ *                             [SX126X_LORA_CAD_ONLY, SX126X_LORA_CAD_RX, SX126X_LORA_CAD_LBT]
  * \param [in]  cadTimeout     Defines the timeout value to abort the CAD activity
  */
-void SX126xSetCadParams( RadioLoRaCadSymbols_t cadSymbolNum, uint8_t cadDetPeak, uint8_t cadDetMin, RadioCadExitModes_t cadExitMode, uint32_t cadTimeout );
+//void SX126xSetCadParams( RadioLoRaCadSymbols_t cadSymbolNum, uint8_t cadDetPeak, uint8_t cadDetMin, RadioCadExitModes_t cadExitMode, uint32_t cadTimeout );
 
 /*!
  * \brief Sets the data buffer base address for transmission and reception
@@ -1098,21 +1129,21 @@ void SX126xSetCadParams( RadioLoRaCadSymbols_t cadSymbolNum, uint8_t cadDetPeak,
  * \param [in]  txBaseAddress Transmission base address
  * \param [in]  rxBaseAddress Reception base address
  */
-void SX126xSetBufferBaseAddress( uint8_t txBaseAddress, uint8_t rxBaseAddress );
+//void SX126xSetBufferBaseAddress( uint8_t txBaseAddress, uint8_t rxBaseAddress );
 
 /*!
  * \brief Gets the current radio status
  *
  * \retval      status        Radio status
  */
-RadioStatus_t SX126xGetStatus( void );
+//RadioStatus_t SX126xGetStatus( void );
 
 /*!
  * \brief Returns the instantaneous RSSI value for the last packet received
  *
  * \retval      rssiInst      Instantaneous RSSI
  */
-int8_t SX126xGetRssiInst( void );
+//int8_t SX126xGetRssiInst( void );
 
 /*!
  * \brief Gets the last received packet buffer status
@@ -1120,41 +1151,41 @@ int8_t SX126xGetRssiInst( void );
  * \param [out] payloadLength Last received packet payload length
  * \param [out] rxStartBuffer Last received packet buffer address pointer
  */
-void SX126xGetRxBufferStatus( uint8_t *payloadLength, uint8_t *rxStartBuffer );
+//void SX126xGetRxBufferStatus( uint8_t *payloadLength, uint8_t *rxStartBuffer );
 
 /*!
  * \brief Gets the last received packet payload length
  *
  * \param [out] pktStatus     A structure of packet status
  */
-void SX126xGetPacketStatus( PacketStatus_t *pktStatus );
+//void SX126xGetPacketStatus( PacketStatus_t *pktStatus );
 
 /*!
  * \brief Returns the possible system errors
  *
  * \retval sysErrors Value representing the possible sys failures
  */
-RadioError_t SX126xGetDeviceErrors( void );
+//RadioError_t SX126xGetDeviceErrors( void );
 
 /*!
  * \brief Clear all the errors in the device
  */
-void SX126xClearDeviceErrors( void );
+//void SX126xClearDeviceErrors( void );
 
 /*!
  * \brief Clears the IRQs
  *
  * \param [in]  irq           IRQ(s) to be cleared
  */
-void SX126xClearIrqStatus( uint16_t irq );
+//void SX126xClearIrqStatus( uint16_t irq );
 
-/*! \} defgroup LORA_SX126X */
+/*! \} defgroup SX126X_LORA_SX126X */
 /*! \} addtogroup LORA */
 
-void sx126xSleep( void );
+//void sx126xSleep( void );
 
-#ifdef __cplusplus
-}
-#endif
+//#ifdef __cplusplus
+//}
+//#endif
 
 #endif // __SX126x_H__

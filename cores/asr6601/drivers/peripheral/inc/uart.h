@@ -67,6 +67,7 @@ uint32_t uartGetBaudRate(int uart);
 bool uartBusy(int uart);
 extern uart_t* serialArray[];
 extern bool uart0started;
+extern uartIrqHandler uart0irq;
 
 #ifdef __cplusplus
 }

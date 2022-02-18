@@ -134,21 +134,10 @@ void DMA1_IRQHandler(void)
     dma1_IRQHandler();
 }
 
-extern void(*intrun[])(void);
-void LORA_IRQHandler()
-{
-    if(uart0started)
-        iomux(UART0_TX,1);
-	//printf("LORA!!\r\n");
-    intrun[0]();
-}
-
-
-
 void RTC_IRQHandler(void)
 {
-    if(uart0started)
-        iomux(UART0_TX,1);
+    //if(uart0started)
+        //iomux(UART0_TX,1);
     RtcOnIrq();
 }
 

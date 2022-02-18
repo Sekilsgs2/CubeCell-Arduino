@@ -155,9 +155,9 @@ static inline void _out_char(char character, void* buffer, size_t idx, size_t ma
   (void)buffer; (void)idx; (void)maxlen;
   if (character) {
 #ifdef PRINT_BY_DMA
-  uart_tx_queue_push((uint8_t)character,0);
+  //uart_tx_queue_push((uint8_t)character,0);
 #else
-  uart_send_data(UART0, (unsigned char)(character));
+  //uart_send_data(UART0, (unsigned char)(character));
 #endif
   }
 }
@@ -875,7 +875,7 @@ int __wrap_printf(const char* format, ...)
   const int ret = _vsnprintf(_out_char, buffer, (size_t)-1, format, va);
   va_end(va);
   #ifdef PRINT_BY_DMA
-  uartTx(0);
+  //uartTx(0);
   #endif
   return ret;
 }
