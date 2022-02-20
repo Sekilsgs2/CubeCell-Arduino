@@ -110,7 +110,7 @@ void analogWrite(uint8_t pin_name, uint16_t value);
 void setPWM_Frequency(clock_pwm_t freq);
 void setPWM_ComparePeriod(uint16_t period);
 void enableGpioWakeUp(uint8_t pin_name,uint8_t wakeup_level);
-
+uint32_t getCurrentMicros(void);
 
 
 

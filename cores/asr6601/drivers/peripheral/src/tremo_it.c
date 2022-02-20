@@ -138,6 +138,6 @@ void RTC_IRQHandler(void)
 {
     //if(uart0started)
         //iomux(UART0_TX,1);
-    RtcOnIrq();
+    //RtcOnIrq();
 }
 

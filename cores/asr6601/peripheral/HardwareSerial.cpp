@@ -66,7 +66,7 @@ bool HardwareSerial::begin(uint32_t baud, uint32_t config, int rxPin, int txPin,
 	uart_attach_rx_callback(_rx_complete_irq);
 	uart_config_interrupt(UART0,UART_INTERRUPT_TX_DONE | UART_INTERRUPT_RX_DONE | UART_INTERRUPT_OVERRUN_ERROR,ENABLE);
 	//uart_config_interrupt(UART0,UART_INTERRUPT_RX_DONE,ENABLE);
-	//NVIC_SetPriority(UART0_IRQn,128);
+	//NVIC_SetPriority(UART0_IRQn,254);
 	if(_uart<0)
 		return false;
 	else
@@ -215,6 +215,14 @@ size_t HardwareSerial::write(const uint8_t *buffer, size_t size)
 
   /* There is no real error management so just return transfer size requested*/
   return ret;
+}
+
+void HardwareSerial::setRx(uint32_t _rx)
+{
+}
+
+void HardwareSerial::setTx(uint32_t _tx)
+{
 }
 
 uint32_t  HardwareSerial::baudRate()

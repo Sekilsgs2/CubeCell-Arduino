@@ -220,7 +220,8 @@ TimerTime_t RtcGetAdjustedTimeoutValue( uint32_t timeout )
 
 TimerTime_t RtcGetTimerValue( void )
 {
-    return RtcConvertCalendarTickToTimerTime( NULL );
+	return systime;
+    //return RtcConvertCalendarTickToTimerTime( NULL );
 }
 
 void BlockLowPowerDuringTask ( bool status )

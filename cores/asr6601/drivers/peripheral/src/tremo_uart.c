@@ -287,7 +287,7 @@ int32_t uart_init(uart_t* uartx, uart_config_t* config)
     // set LCR_H
     TREMO_REG_SET(uartx->LCR_H, UART_LCR_H_WLEN, config->data_width);
     TREMO_REG_SET(uartx->LCR_H, UART_LCR_H_STOP, config->stop_bits);
-    TREMO_REG_EN(uartx->LCR_H, UART_LCR_H_FEN, 1);
+    TREMO_REG_EN(uartx->LCR_H, UART_LCR_H_FEN, config->fifo_mode);
     switch (config->parity) {
     case UART_PARITY_ODD:
         uartx->LCR_H |= UART_LCR_H_PEN;
@@ -472,8 +472,6 @@ uint8_t UART_Transmit_IT(uint8_t *pData, uint16_t Size)
 				tx_callback[0]();
 		}
 	}
-		
-	//uart_config_interrupt(UART0,UART_INTERRUPT_TX_DONE | UART_INTERRUPT_RX_DONE,ENABLE);	
 }
 
 void uart_attach_tx_callback(void (*callback)(void), size_t size) {

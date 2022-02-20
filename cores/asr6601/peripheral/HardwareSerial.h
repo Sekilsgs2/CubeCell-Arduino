@@ -10,7 +10,7 @@
 #define SERIAL_TX_BUFFER_SIZE 64
 #endif
 #if !defined(SERIAL_RX_BUFFER_SIZE)
-#define SERIAL_RX_BUFFER_SIZE 512
+#define SERIAL_RX_BUFFER_SIZE 256
 #endif
 
 #if (SERIAL_TX_BUFFER_SIZE > 256)
@@ -47,8 +47,10 @@ public:
     int read(void);
     void flush(void);
     void flush( bool txOnly);
-    //size_t write(uint8_t c);
-    //size_t write(const uint8_t *buffer, size_t size);
+	
+    void setRx(uint32_t _rx);
+    void setTx(uint32_t _tx);
+	
     bool busy(void);
 
     virtual size_t write(uint8_t);
