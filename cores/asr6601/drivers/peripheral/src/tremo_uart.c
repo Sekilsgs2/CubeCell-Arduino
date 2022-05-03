@@ -395,23 +395,24 @@ void uart_dma_onerror_config(uart_t* uartx, bool new_state)
 void UART00_IRQHandler(void) {
   if ( uart_get_interrupt_status(UART0, UART_INTERRUPT_RX_DONE) )
   {
-	uart_clear_interrupt(UART0, UART_INTERRUPT_RX_DONE);	
+		
     while ( uart_get_flag_status(UART0, UART_FLAG_RX_FIFO_EMPTY) != 1 )
     {
 		if (rx_callback[0])
 			rx_callback[0]();
     }
-    
+    uart_clear_interrupt(UART0, UART_INTERRUPT_RX_DONE);
   }
 
   if ( uart_get_interrupt_status(UART0, UART_INTERRUPT_OVERRUN_ERROR) )
   {
-    uart_clear_interrupt(UART0, UART_INTERRUPT_OVERRUN_ERROR);
+    
     while ( uart_get_flag_status(UART0, UART_FLAG_RX_FIFO_EMPTY) != 1 )
     {
 		if (rx_callback[0])
-				rx_callback[0]();  
+			rx_callback[0]();  
     }
+    uart_clear_interrupt(UART0, UART_INTERRUPT_OVERRUN_ERROR);
   }
   if ( uart_get_interrupt_status(UART0, UART_INTERRUPT_TX_DONE) )
   {
