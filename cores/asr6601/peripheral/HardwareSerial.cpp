@@ -60,13 +60,11 @@ bool HardwareSerial::begin(uint32_t baud, uint32_t config, int rxPin, int txPin,
 	
 	_uart = uartStart(baud,config,_rxPin,_txPin);
 	uart_cmd(UART0, DISABLE);
-	uart_set_rx_fifo_threshold(UART0,UART_IFLS_RX_7_8);
+	uart_set_rx_fifo_threshold(UART0,UART_IFLS_RX_1_8);
 	uart_set_tx_fifo_threshold(UART0,UART_IFLS_TX_7_8);
 	uart_cmd(UART0, ENABLE);
 	uart_attach_rx_callback(_rx_complete_irq);
-	uart_config_interrupt(UART0,UART_INTERRUPT_TX_DONE | UART_INTERRUPT_RX_DONE | UART_INTERRUPT_OVERRUN_ERROR,ENABLE);
-	//uart_config_interrupt(UART0,UART_INTERRUPT_RX_DONE,ENABLE);
-	//NVIC_SetPriority(UART0_IRQn,254);
+	uart_config_interrupt(UART0,UART_INTERRUPT_TX_DONE | UART_INTERRUPT_RX_DONE,ENABLE);
 	if(_uart<0)
 		return false;
 	else
@@ -87,12 +85,7 @@ void HardwareSerial::end()
 int HardwareSerial::available(void)
 {
 	return ((unsigned int)(SERIAL_RX_BUFFER_SIZE + rx_head - rx_tail)) % SERIAL_RX_BUFFER_SIZE;
-	//return uartAvailable(_uart);
 }
-//int HardwareSerial::availableForWrite(void)
-//{
-	//return uartAvailableForWrite(_uart);
-//}
 
 int HardwareSerial::availableForWrite(void)
 {
@@ -128,10 +121,6 @@ int HardwareSerial::read(void)
     rx_tail = (rx_buffer_index_t)(rx_tail + 1) % SERIAL_RX_BUFFER_SIZE;
     return c;
   }
-	//if(available()) {
-		//return uartRead(_uart);
-	//}
-	//return -1;
 }
 
 void HardwareSerial::flush(void)
@@ -228,15 +217,12 @@ void HardwareSerial::setTx(uint32_t _tx)
 uint32_t  HardwareSerial::baudRate()
 {
 	return _baud;
-	//return uartGetBaudRate(_uart);
 }
 
 void HardwareSerial::_rx_complete_irq(void)
 {
   // No Parity error, read byte and store it in the buffer if there is room
   unsigned char c = uart_get_dr0();
-
-  //if (  uint8_t uart_get_dr0() == 0) {
 
     rx_buffer_index_t i = (unsigned int)(rx_head + 1) % SERIAL_RX_BUFFER_SIZE;
 
@@ -248,7 +234,6 @@ void HardwareSerial::_rx_complete_irq(void)
       rx_buff[rx_head] = c;
       rx_head = i;
     }
-  //}
 }
 
 // Actual interrupt handlers //////////////////////////////////////////////////
