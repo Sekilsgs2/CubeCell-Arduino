@@ -60,11 +60,11 @@ bool HardwareSerial::begin(uint32_t baud, uint32_t config, int rxPin, int txPin,
 	
 	_uart = uartStart(baud,config,_rxPin,_txPin);
 	uart_cmd(UART0, DISABLE);
-	uart_set_rx_fifo_threshold(UART0,UART_IFLS_RX_1_8);
+	uart_set_rx_fifo_threshold(UART0,UART_IFLS_RX_7_8);
 	uart_set_tx_fifo_threshold(UART0,UART_IFLS_TX_7_8);
-	uart_cmd(UART0, ENABLE);
 	uart_attach_rx_callback(_rx_complete_irq);
 	uart_config_interrupt(UART0,UART_INTERRUPT_TX_DONE | UART_INTERRUPT_RX_DONE,ENABLE);
+	uart_cmd(UART0, ENABLE);
 	if(_uart<0)
 		return false;
 	else
@@ -221,19 +221,21 @@ uint32_t  HardwareSerial::baudRate()
 
 void HardwareSerial::_rx_complete_irq(void)
 {
+  while ( uart_get_flag_status(UART0, UART_FLAG_RX_FIFO_EMPTY) != 1 ) {
   // No Parity error, read byte and store it in the buffer if there is room
-  unsigned char c = uart_get_dr0();
+      unsigned char c = uart_get_dr0();
 
-    rx_buffer_index_t i = (unsigned int)(rx_head + 1) % SERIAL_RX_BUFFER_SIZE;
+      rx_buffer_index_t i = (unsigned int)(rx_head + 1) % SERIAL_RX_BUFFER_SIZE;
 
-    // if we should be storing the received character into the location
-    // just before the tail (meaning that the head would advance to the
-    // current location of the tail), we're about to overflow the buffer
-    // and so we don't write the character or advance the head.
-    if (i != rx_tail) {
-      rx_buff[rx_head] = c;
-      rx_head = i;
-    }
+      // if we should be storing the received character into the location
+      // just before the tail (meaning that the head would advance to the
+      // current location of the tail), we're about to overflow the buffer
+      // and so we don't write the character or advance the head.
+      if (i != rx_tail) {
+        rx_buff[rx_head] = c;
+        rx_head = i;
+      }
+  }
 }
 
 // Actual interrupt handlers //////////////////////////////////////////////////
