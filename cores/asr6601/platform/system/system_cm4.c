@@ -12,8 +12,6 @@ void boardInitMcu( void )
     pinMode(1,ANALOG);
     pinMode(6,ANALOG);
     pinMode(7,ANALOG);
-    //rcc_enable_oscillator(RCC_OSC_XO32K, true);
-	//rcc_enable_oscillator(RCC_OSC_XO32M, true);
     rcc_enable_peripheral_clk(RCC_PERIPHERAL_GPIOA, true);
     rcc_enable_peripheral_clk(RCC_PERIPHERAL_GPIOB, true);
     rcc_enable_peripheral_clk(RCC_PERIPHERAL_GPIOC, true);
@@ -29,13 +27,8 @@ void boardInitMcu( void )
     digitalWrite(Vext,HIGH);
     pinMode(VBAT_ADC_CTL, OUTPUT);
     digitalWrite(VBAT_ADC_CTL,HIGH);
-    //pwr_xo32k_lpm_cmd(true);
-    //RtcInit();
     delay(100);
-    systime = 0;//(uint32_t)RtcGetTimerValue();
-    //srand(analogRead(11)+analogRead(4)+analogRead(5)+analogRead(8)+analogRead(47));
-    //SX126xInit();
-    //sx126xSleep();
+    systime = 0;
 }
 
 
@@ -50,8 +43,6 @@ void nvic_init()
 void system_init(void)
 {
     rcc_set_sys_clk_source(RCC_SYS_CLK_SOURCE_RCO48M);
-	//rcc_set_qspi_clk_source(RCC_CR2_QSPI_CLK_SEL_HCLK);
-	//rcc_set_pclk_div(RCC_PCLK0_DIV_1, RCC_PCLK1_DIV_1);
     // FPU enable
 #if (__FPU_PRESENT == 1)
     SCB->CPACR |= ((3UL << 10 * 2) | (3UL << 11 * 2));
@@ -73,7 +64,6 @@ bool BoardDisableIrq( void )
 {
    if(boardIrqIsDisabled==false)
    {
-       //__disable_irq();
        boardIrqIsDisabled = true;
        return true;
    }
@@ -85,7 +75,6 @@ void BoardEnableIrq( bool disabledhere)
 {
     if(disabledhere)
     {
-       //__enable_irq();
        boardIrqIsDisabled = false;
     }
 }
@@ -124,19 +113,3 @@ unsigned long micros( void )
     // this is an optimization to turn a runtime division into two compile-time divisions and 
     // a runtime multiplication and shift, saving a few cycles
 }
-
-uint32_t micros1(void)
-{
-  /* Ensure COUNTFLAG is reset by reading SysTick control and status register */
-  LL_SYSTICK_IsActiveCounterFlag();
-  uint32_t m = systime;
-  const uint32_t tms = SysTick->LOAD + 1;
-  __IO uint32_t u = tms - SysTick->VAL;
-  if (LL_SYSTICK_IsActiveCounterFlag()) {
-    m = systime;
-    u = tms - SysTick->VAL;
-  }
-  return (m * 1000 + (u * 1000) / tms);
-} 
-
-/********END OF FILE ***********/
