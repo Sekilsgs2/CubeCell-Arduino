@@ -2,8 +2,8 @@
  ******************************************************************************
  * @file    tremo_dma.h
  * @author  ASR Tremo Team
- * @version v1.1.0
- * @date    2020-10-19
+ * @version v1.6.0
+ * @date    2021-11-03
  * @brief   Header file of DMA module.
  * @addtogroup Tremo_Drivers
  * @{
@@ -196,14 +196,14 @@ extern "C" {
 
 #define TREMO_DMA_NUM_0    0 /*!< The first DMA*/
 #define TREMO_DMA_NUM_1    1 /*!< The second DMA*/
-#define TREMO_DMA_CHAN_0   1 /*!< The DMA channel 0*/
+#define TREMO_DMA_CHAN_0   0 /*!< The DMA channel 0*/
 #define TREMO_DMA_CHAN_1   1 /*!< The DMA channel 1*/
-#define TREMO_DMA_CHAN_2   1 /*!< The DMA channel 2*/
-#define TREMO_DMA_CHAN_3   1 /*!< The DMA channel 3*/
+#define TREMO_DMA_CHAN_2   2 /*!< The DMA channel 2*/
+#define TREMO_DMA_CHAN_3   3 /*!< The DMA channel 3*/
 #define TREMO_DMA_NUM      2 /*!< DMA number*/
 #define TREMO_DMA_CHAN_NUM 4 /*!< DMA channel number in per DMA*/
 
-typedef void (*dma_callback_func)(); /*!< DMA callback function*/
+typedef void (*dma_callback_func)(void); /*!< DMA callback function*/
 
 /**
  * @brief DMA mode
@@ -242,15 +242,6 @@ typedef struct {
     uint16_t block_size;    /*!< DMA transfer block size*/
     uint8_t handshake;      /*!< DMA handshake*/
     uint8_t dma_num;        /*!< DMA number*/
-    uint8_t  dma_busy;
-    uint8_t * dma_queue;
-    uint8_t * dma_buf;
-    uint16_t  dma_idx_w;
-    uint16_t  dma_idx_r;
-    uint8_t * rx_buf;
-    uint16_t rx_w;
-    uint16_t rx_r;
-    bool started;
     dma_mode_t mode;        /*!< DMA mode*/
     dma_callback_func priv; /*!< callback function*/
 } dma_dev_t;
@@ -311,10 +302,6 @@ void dma_ch_enable(uint8_t dma_num, uint8_t ch);
 void dma_ch_disable(uint8_t dma_num, uint8_t ch);
 
 void dma_finalize(dma_dev_t* dma);
-void dma1_IRQHandler(void);
-void dma0_IRQHandler(void);
-uint8_t getDmaIrqCh(uint8_t i);
-void clearDmaIrqFlag(uint8_t i,int dma_ch);
 
 #ifdef __cplusplus
 }

@@ -3,7 +3,7 @@
 #include "tremo_cm4.h"
 #include "tremo_dma.h"
 
-dma_callback_func g_dma_callback_handler[TREMO_DMA_NUM][TREMO_DMA_CHAN_NUM]; /*!< DMA callback function handler*/
+volatile dma_callback_func g_dma_callback_handler[TREMO_DMA_NUM][TREMO_DMA_CHAN_NUM]; /*!< DMA callback function handler*/
 
 static uint32_t write32_bit_variate(uint32_t variate_value, uint8_t start_bit, uint8_t len, uint32_t src_val)
 {
@@ -64,60 +64,84 @@ static uint32_t read32_bit_reg(uint32_t reg, uint8_t start_bit, uint8_t len)
     }
 }
 
-uint8_t getDmaIrqCh(uint8_t i)
+RAM_FUNC_ATTR void dma0_IRQHandler(void)
 {
-	if (TREMO_REG_RD(DMA_STATUS_BLOCK_L_REG(i)) & 0x01) {
-		return 0;
-	} else if (TREMO_REG_RD(DMA_STATUS_BLOCK_L_REG(i)) & 0x02) {
-		return 1;
-	} else if (TREMO_REG_RD(DMA_STATUS_BLOCK_L_REG(i)) & 0x04) {
-		return 2;
-	} else {
-		return 3;
-	}
+    uint8_t dma_ch = 0;
+
+    if (TREMO_REG_RD(DMA_STATUS_BLOCK_L_REG(0)) & 0x01) {
+        dma_ch = 0;
+    } else if (TREMO_REG_RD(DMA_STATUS_BLOCK_L_REG(0)) & 0x02) {
+        dma_ch = 1;
+    } else if (TREMO_REG_RD(DMA_STATUS_BLOCK_L_REG(0)) & 0x04) {
+        dma_ch = 2;
+    } else {
+        dma_ch = 3;
+    }
+
+    if (g_dma_callback_handler[0][dma_ch]) {
+        g_dma_callback_handler[0][dma_ch]();
+    }
+    if (dma_ch == 0) {
+        /*clear TFR int,channelx*/
+        TREMO_REG_WR(DMA_CLEAR_TFR_L_REG(0), 0x1);
+        /*clear block int,channelx*/
+        TREMO_REG_WR(DMA_CLEAR_BLOCK_L_REG(0), 0x1);
+    } else if (dma_ch == 1) {
+        /*clear TFR int,channelx*/
+        TREMO_REG_WR(DMA_CLEAR_TFR_L_REG(0), 0x2);
+        /*clear block int,channelx*/
+        TREMO_REG_WR(DMA_CLEAR_BLOCK_L_REG(0), 0x2);
+    } else if (dma_ch == 2) {
+        /*clear TFR int,channelx*/
+        TREMO_REG_WR(DMA_CLEAR_TFR_L_REG(0), 0x4);
+        /*clear block int,channelx*/
+        TREMO_REG_WR(DMA_CLEAR_BLOCK_L_REG(0), 0x4);
+    } else {
+        /*clear TFR int,channelx*/
+        TREMO_REG_WR(DMA_CLEAR_TFR_L_REG(0), 0x8);
+        /*clear block int,channelx*/
+        TREMO_REG_WR(DMA_CLEAR_BLOCK_L_REG(0), 0x8);
+    }
 }
 
-void clearDmaIrqFlag(uint8_t i,int dma_ch)
+RAM_FUNC_ATTR void dma1_IRQHandler(void)
 {
-	if (dma_ch == 0) {
-		/*clear TFR int,channelx*/
-		TREMO_REG_WR(DMA_CLEAR_TFR_L_REG(i), 0x1);
-		/*clear block int,channelx*/
-		TREMO_REG_WR(DMA_CLEAR_BLOCK_L_REG(i), 0x1);
-	} else if (dma_ch == 1) {
-		/*clear TFR int,channelx*/
-		TREMO_REG_WR(DMA_CLEAR_TFR_L_REG(i), 0x2);
-		/*clear block int,channelx*/
-		TREMO_REG_WR(DMA_CLEAR_BLOCK_L_REG(i), 0x2);
-	} else if (dma_ch == 2) {
-		/*clear TFR int,channelx*/
-		TREMO_REG_WR(DMA_CLEAR_TFR_L_REG(i), 0x4);
-		/*clear block int,channelx*/
-		TREMO_REG_WR(DMA_CLEAR_BLOCK_L_REG(i), 0x4);
-	} else {
-		/*clear TFR int,channelx*/
-		TREMO_REG_WR(DMA_CLEAR_TFR_L_REG(i), 0x8);
-		/*clear block int,channelx*/
-		TREMO_REG_WR(DMA_CLEAR_BLOCK_L_REG(i), 0x8);
-	}
-}
+    uint8_t dma_ch = 0;
 
-void dma0_IRQHandler(void)
-{
-	uint8_t dma_ch = getDmaIrqCh(0);
+    if (TREMO_REG_RD(DMA_STATUS_BLOCK_L_REG(1)) & 0x01) {
+        dma_ch = 0;
+    } else if (TREMO_REG_RD(DMA_STATUS_BLOCK_L_REG(1)) & 0x02) {
+        dma_ch = 1;
+    } else if (TREMO_REG_RD(DMA_STATUS_BLOCK_L_REG(1)) & 0x04) {
+        dma_ch = 2;
+    } else {
+        dma_ch = 3;
+    }
 
-	if (g_dma_callback_handler[0][dma_ch]) {
-		g_dma_callback_handler[0][dma_ch]();
-	}
-}
-
-void dma1_IRQHandler(void)
-{
-	uint8_t dma_ch = getDmaIrqCh(1);
-	clearDmaIrqFlag(1,dma_ch);
-	if (g_dma_callback_handler[1][dma_ch]) {
-		g_dma_callback_handler[1][dma_ch]();
-	}
+    if (g_dma_callback_handler[1][dma_ch]) {
+        g_dma_callback_handler[1][dma_ch]();
+    }
+    if (dma_ch == 0) {
+        /*clear TFR int,channelx*/
+        TREMO_REG_WR(DMA_CLEAR_TFR_L_REG(1), 0x1);
+        /*clear block int,channelx*/
+        TREMO_REG_WR(DMA_CLEAR_BLOCK_L_REG(1), 0x1);
+    } else if (dma_ch == 1) {
+        /*clear TFR int,channelx*/
+        TREMO_REG_WR(DMA_CLEAR_TFR_L_REG(1), 0x2);
+        /*clear block int,channelx*/
+        TREMO_REG_WR(DMA_CLEAR_BLOCK_L_REG(1), 0x2);
+    } else if (dma_ch == 2) {
+        /*clear TFR int,channelx*/
+        TREMO_REG_WR(DMA_CLEAR_TFR_L_REG(1), 0x4);
+        /*clear block int,channelx*/
+        TREMO_REG_WR(DMA_CLEAR_BLOCK_L_REG(1), 0x4);
+    } else {
+        /*clear TFR int,channelx*/
+        TREMO_REG_WR(DMA_CLEAR_TFR_L_REG(1), 0x8);
+        /*clear block int,channelx*/
+        TREMO_REG_WR(DMA_CLEAR_BLOCK_L_REG(1), 0x8);
+    }
 }
 
 static void set_dma_mode(dma_dev_t* dma, dma_config_reg_t* config_reg)
@@ -271,6 +295,42 @@ static void set_dma_mode(dma_dev_t* dma, dma_config_reg_t* config_reg)
 /**
  * @brief  Initialize a dma interface
  * @param  dma the configuration of the interface
+ * @note   Some notes for the dma
+ * 
+ *         Following is the hierarchy of the dma transfer.
+ * 
+ *                                           DMA Transfer
+ *                                                |
+ *                      -----------------------------------------------------
+ *                      |                         |                         |
+ *                Block Transfer            Block Transfer     ...     Block Transfer
+ *                                                |
+ *               ---------------------------------------------------------------------------
+ *               |                    |                               |                    |
+ *         Burst Transaction   Burst Transaction       ...      Burst Transaction   Burst Transaction   
+ * 
+ *         The dma transfer only have one block transfer default. If the auto-reloading is set, the dma will have multiple block transfers.
+ * 
+ *         Following is some definitions in the dma transfer. 
+ *         dma_src_burst_size_bytes = dma->src_msize * dma->data_width/8
+ *         dma_dest_burst_size_bytes = dma->dest_msize * dma->data_width/8
+ *         dma_block_size_bytes = dma->block_size * dma->data_width/8
+ * 
+ *         If dma->priv is set to a function, the callback function will be called after the block transfer is done.
+ *         If dma->priv is set to NULL, no dma irq will be triggerred and no callback fucntion will be called.
+ * 
+ *         Following is the value of dma->data_width
+ *         - 0:8bit
+ *         - 1:16bit
+ *         - 2:32bit
+ *         Following is the value of dma->dest_msize
+ *         - 0:1
+ *         - 1:4
+ *         - 2:8
+ * 
+ *         Recommondation: To speed up the dma transfer, the dma->src_msize should be the same as the dma->dest_msize, and the dma->block_size should
+ *         be multiples of the msize.
+ * 
  * @return
  */
 void dma_init(dma_dev_t* dma)
@@ -299,8 +359,10 @@ void dma_init(dma_dev_t* dma)
 
     /*[16:14]=000, src_size*/
     write32_bit_reg(config_reg.DMA_CTL_L_REG, 14, 3, dma->src_msize);
+	//TREMO_REG_WR(config_reg.DMA_CTL_L_REG, 0x300001);
     /*[13:11]=000, dest_size*/
     write32_bit_reg(config_reg.DMA_CTL_L_REG, 11, 3, dma->dest_msize);
+	//TREMO_REG_WR(config_reg.DMA_CTL_L_REG, 0x300001);
     /*[6:4]=000,   source width*/
     write32_bit_reg(config_reg.DMA_CTL_L_REG, 4, 3, dma->data_width);
     /*[3:1]=000,   destination width*/
@@ -313,13 +375,13 @@ void dma_init(dma_dev_t* dma)
 
     if (dma->dma_num == 0) {
         NVIC_EnableIRQ(DMA0_IRQn);
-        NVIC_SetPriority(DMA0_IRQn, 2);
+        NVIC_SetPriority(DMA0_IRQn, 0);
     } else {
         NVIC_EnableIRQ(DMA1_IRQn);
-        NVIC_SetPriority(DMA1_IRQn, 2);
+        NVIC_SetPriority(DMA1_IRQn, 0);
     }
 
-    if (dma->priv || dma->dma_num == 0) {
+    if (dma->priv) {
         if (dma->ch == 0) {
             temp_val = TREMO_REG_RD(DMA_MASK_BLOCK_L_REG(dma->dma_num));
             TREMO_REG_WR(DMA_MASK_BLOCK_L_REG(dma->dma_num), temp_val | 0X0101);
@@ -438,7 +500,7 @@ void dma_lli_init(dma_dev_t* dma, dma_lli_t* dma_lli, dma_lli_block_config_t* dm
         NVIC_SetPriority(DMA1_IRQn, 2);
     }
 
-    if (dma->priv || dma->dma_num == 0) {
+    if (dma->priv) {
         if (dma->ch == 0) {
             temp_val = TREMO_REG_RD(DMA_MASK_BLOCK_L_REG(dma->dma_num));
             TREMO_REG_WR(DMA_MASK_BLOCK_L_REG(dma->dma_num), temp_val | 0X0101);

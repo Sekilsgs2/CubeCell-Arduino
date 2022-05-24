@@ -180,6 +180,8 @@ bool serial_rx_active(void);
 
 uint8_t UART_Transmit_IT(uint8_t *pData, uint16_t Size);
 
+extern void tx_uart_dma_irq_handle(void);
+
 #ifdef __cplusplus
 }
 #endif

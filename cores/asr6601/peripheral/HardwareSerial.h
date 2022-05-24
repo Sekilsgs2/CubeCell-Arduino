@@ -7,10 +7,10 @@
 #include "uart.h"
 
 #if !defined(SERIAL_TX_BUFFER_SIZE)
-#define SERIAL_TX_BUFFER_SIZE 64
+#define SERIAL_TX_BUFFER_SIZE 256
 #endif
 #if !defined(SERIAL_RX_BUFFER_SIZE)
-#define SERIAL_RX_BUFFER_SIZE 128
+#define SERIAL_RX_BUFFER_SIZE 256
 #endif
 
 #if (SERIAL_TX_BUFFER_SIZE > 256)
@@ -28,15 +28,19 @@ class HardwareSerial: public Stream
 {
 protected:
 	bool _written;
-    unsigned char _rx_buffer[SERIAL_RX_BUFFER_SIZE];
+    //unsigned char rx_buff[SERIAL_RX_BUFFER_SIZE];
     unsigned char _tx_buffer[SERIAL_TX_BUFFER_SIZE];
     int _uart;
     uint32_t _baud;
     int _rxPin=-1;
     int _txPin=-1;
     uint32_t _config;
+	volatile int tx_busy  = 0;
+	
 public:
     HardwareSerial(int uart_nr);
+	
+	//unsigned char rx_buff[SERIAL_RX_BUFFER_SIZE];
 
     bool begin(uint32_t baud=115200, uint32_t config=SERIAL_8N1, int rxPin=-1, int txPin=-1, bool invert=false, unsigned long timeout_ms = 20000UL);
     void end();
@@ -45,8 +49,11 @@ public:
     int availableForWrite(void);
     int peek(void);
     int read(void);
+	int rxst(void);
     void flush(void);
     void flush( bool txOnly);
+	
+	//void tx_uart_dma_irq_handle(void);
 	
     void setRx(uint32_t _rx);
     void setTx(uint32_t _tx);

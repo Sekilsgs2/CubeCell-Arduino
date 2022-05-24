@@ -19,12 +19,38 @@ extern volatile uint16_t tx_head;
 extern volatile uint16_t tx_tail;
 extern volatile size_t tx_size;
 
+#define UART_CR_FLOW_CTRL_RXE     ((uint32_t)0x0200)
+#define UART_CR_FLOW_CTRL_TXE     ((uint32_t)0x0100)
+#define UART_HARDWARE_FLOW_CONTROL_MASK		((uint16_t)0xFF80)
+
+#define CR_EN_Set                 ((uint16_t)0x0001)  /*!< UART Enable Mask */
+#define CR_EN_Reset               ((uint16_t)0xFFFE)  /*!< UART Disable Mask */
+
+#define CR_SIREN_Set              ((uint16_t)0x0002)  /*!< UART IrDA mode Enable Mask */
+#define CR_SIREN_Reset            ((uint16_t)0xFFFD)  /*!< UART IrDA mode Disable Mask */
+
+#define CR_FC_Mask                ((uint16_t)0xFF80)  /*!< UART CR Flow control Bits Mask */
+
+#define LCR_H_BRK_Set             ((uint16_t)0x0001)  /*!< UART Break Line Set Mask */
+#define LCR_H_BRK_Reset           ((uint16_t)0xFFFE)  /*!< UART Break Line Reset Mask */
+#define LCR_H_Clear_Mask          ((uint16_t)0x00FF)  /*!< UART LCR_H Mask */
+
+#define FBRD_Fract_Mask           ((uint16_t)0x003F)  /*!< Fractional divider Mask */
+
+#define IrLPBaud16                ((uint32_t)1843200) /*!< F_IrLPBaud16 nominal frequency Hz */
+
+#define UART1_BRG_Mask            ((uint32_t)0x0007)  /*!< UART1 clock divider Mask */
+#define UART2_BRG_Mask            ((uint32_t)0x0700)  /*!< UART2 clock divider Mask */
+#define UART2_BRG_Offs            ((uint32_t)0x0008)  /*!< UART2 clock divider Offset */
+
 uint32_t calc_uart_baud(uint32_t uart_clk, uint32_t baud)
 {
     uint32_t int_div;
     uint32_t fac_div;
     uint32_t remainder;
     uint32_t temp;
+
+/*
 
     temp = 16 * baud;
     if ((0 == baud) || uart_clk < temp) {
@@ -38,6 +64,13 @@ uint32_t calc_uart_baud(uint32_t uart_clk, uint32_t baud)
 
     temp = ((int_div << 16) | (fac_div & 0xFFFF));
     return temp;
+	*/
+	/* Determine the integer part */
+	remainder = uart_clk / (baud >> 2);
+	int_div = remainder >> 6;
+	/* Determine the fractional part */
+	fac_div = (remainder & FBRD_Fract_Mask);
+	return ((int_div << 16) | (fac_div & 0xFFFF));
 }
 
 
@@ -136,7 +169,7 @@ void uart_deinit(uart_t* uartx)
     rcc_enable_peripheral_clk(peripheral, false);
     rcc_rst_peripheral(peripheral, true);
     rcc_rst_peripheral(peripheral, false);
-	tx_state = false;
+	//tx_state = false;
 	rx_state = false;
 }
 
@@ -235,10 +268,14 @@ void uart_clear_interrupt(uart_t* uartx, uint32_t uart_interrupt)
  * @retval ERRNO_OK Init successfully
  * @retval ERRNO_ERROR Init failed
  */
+ 
+
+
 int32_t uart_init(uart_t* uartx, uart_config_t* config)
 {
     uint32_t uart_clk_freq = 0;
     uint32_t clk_src       = 0;
+	uint32_t tmpreg;
 
 	tx_state = false;
 	rx_state = false;
@@ -283,6 +320,20 @@ int32_t uart_init(uart_t* uartx, uart_config_t* config)
     uartx->IBRD     = br_div >> 16; /* baudrate divdier register must be placed
                                        before a LCR_H write */
     uartx->FBRD = br_div & 0x3f;
+	
+	//tmpreg = uartx->LCR_H;
+	//tmpreg |= config->data_width | config->stop_bits
+			//| config->parity | config->fifo_mode;
+	//uartx->LCR_H = tmpreg;
+	
+	/* UART CR configuration */
+	//tmpreg = uartx->CR;
+	/* Clear UART CR Flow control bits */
+	//tmpreg &= ~CR_FC_Mask;
+	/* Set UART CR Flow control bits */
+	//tmpreg |= UART_CR_FLOW_CTRL_RXE | UART_CR_FLOW_CTRL_TXE;
+	/* Write to UART CR */
+	//uartx->CR = tmpreg;
 
     // set LCR_H
     TREMO_REG_SET(uartx->LCR_H, UART_LCR_H_WLEN, config->data_width);
@@ -303,9 +354,10 @@ int32_t uart_init(uart_t* uartx, uart_config_t* config)
     default:
         break;
     }
+	
 
     TREMO_REG_SET(uartx->CR, UART_CR_UART_MODE, config->mode);
-    TREMO_REG_SET(uartx->CR, UART_CR_FLOW_CTRL, config->flow_control);
+    TREMO_REG_SET(uartx->CR, UART_CR_FLOW_CTRL, UART_CR_FLOW_CTRL_RXE | UART_CR_FLOW_CTRL_TXE);
 
     return ERRNO_OK;
 }
@@ -392,7 +444,9 @@ void uart_dma_onerror_config(uart_t* uartx, bool new_state)
     TREMO_REG_EN(uartx->DMACR, UART_DMACR_ONERR_EN_MASK, new_state);
 }
 
+
 void UART00_IRQHandler(void) {
+	/*
   if ( uart_get_interrupt_status(UART0, UART_INTERRUPT_RX_DONE) )
   {
 	if (rx_callback[0])
@@ -400,15 +454,26 @@ void UART00_IRQHandler(void) {
     uart_clear_interrupt(UART0, UART_INTERRUPT_RX_DONE);
   }
 
+*/
+  if ( uart_get_interrupt_status(UART0, UART_INTERRUPT_RX_TIMEOUT) )
+  {
+	//if (rx_callback[0])
+		//rx_callback[0]();
+    uart_clear_interrupt(UART0, UART_INTERRUPT_RX_TIMEOUT);
+  }
   if ( uart_get_interrupt_status(UART0, UART_INTERRUPT_TX_DONE) )
   {
+	//tx_uart_dma_irq_handle();
     uart_clear_interrupt(UART0, UART_INTERRUPT_TX_DONE);
+	//while(1);
+
 	if (tx_state)
 	{
 		if (TxXferCount == 0)
 		
 		{
 			tx_state = false;
+			uart_config_interrupt(UART0, UART_INTERRUPT_RX_DONE, ENABLE);
 			if (tx_callback[0])
 				tx_callback[0]();
 		}
@@ -424,13 +489,17 @@ void UART00_IRQHandler(void) {
 				if (uart_get_flag_status(UART0, UART_FLAG_TX_FIFO_FULL) != 1)
 				{
 					tx_state = false;
+					uart_config_interrupt(UART0, UART_INTERRUPT_RX_DONE, ENABLE);
 					if (tx_callback[0])
 						tx_callback[0]();
 				}
 			}
 		}
     }
-  }	
+	
+  }
+	  
+  
 }
 
 void uart_attach_rx_callback(void (*callback)(void)) {

@@ -2,8 +2,8 @@
  ******************************************************************************
  * @file    tremo_lpuart.h
  * @author  ASR Tremo Team
- * @version v1.1.0
- * @date    2020-10-19
+ * @version v1.6.0
+ * @date    2021-11-03
  * @brief   Header file of LPUART module.
  * @addtogroup Tremo_Drivers
  * @{

@@ -20,6 +20,7 @@ void gpio_deinit(void)
 
 /**
  * @brief Init the GPIOx according to the specified parameters
+ * @note  The default mode of the gpio is GPIO_MODE_ANALOG.
  * @param gpiox Select the GPIO peripheral number(GPIOA, GPIOB, GPIOC and GPIOD)
  * @param gpio_pin Select the GPIO pin number. 
  *          This parameter can be one of the following values:
@@ -41,12 +42,12 @@ void gpio_deinit(void)
  *           @arg GPIO_PIN_15: Pin 15
  * @param mode Select the GPIO mode. 
  *          This parameter can be one of the following values:
- *           @arg GPIO_MODE_INPUT_FLOATING:     Input floating
+ *           @arg GPIO_MODE_INPUT_FLOATING:  Input floating
  *           @arg GPIO_MODE_INPUT_PULL_UP:   Input pull-up
  *           @arg GPIO_MODE_INPUT_PULL_DOWN: Input pull-down
  *           @arg GPIO_MODE_OUTPUT_PP_HIGH:  Output push-pull high level
  *           @arg GPIO_MODE_OUTPUT_PP_LOW:   Output push-pull low level
- *           @arg GPIO_MODE_OUTPUT_OD_HIZ:   Output open-drain hig-impedance
+ *           @arg GPIO_MODE_OUTPUT_OD_HIZ:   Output open-drain high-impedance
  *           @arg GPIO_MODE_OUTPUT_OD_LOW:   Output open-drain low level
  *           @arg GPIO_MODE_ANALOG:          Analog
  * @retval None
@@ -96,7 +97,7 @@ void gpio_init(gpio_t* gpiox, uint8_t gpio_pin, gpio_mode_t mode)
             gpiox->ODR &= ~(1 << gpio_pin);
             gpiox->IER &= ~(1 << gpio_pin);
             gpiox->OER |= (1 << gpio_pin);
-            gpiox->PSR &= ~(1 << gpio_pin);
+            gpiox->PSR |= (1 << gpio_pin);
         } else {
             gpiox->OER &= ~(1 << gpio_pin);
             gpiox->IER &= ~(1 << gpio_pin);
@@ -110,7 +111,7 @@ void gpio_init(gpio_t* gpiox, uint8_t gpio_pin, gpio_mode_t mode)
             gpiox->ODR &= ~(1 << gpio_pin);
             gpiox->IER &= ~(1 << gpio_pin);
             gpiox->OER &= ~(1 << gpio_pin);
-            gpiox->PSR &= ~(1 << gpio_pin);
+            gpiox->PSR |= (1 << gpio_pin);
         } else {
             gpiox->OER &= ~(1 << gpio_pin);
             gpiox->IER &= ~(1 << gpio_pin);
@@ -159,11 +160,35 @@ void gpio_init(gpio_t* gpiox, uint8_t gpio_pin, gpio_mode_t mode)
 void gpio_write(gpio_t* gpiox, uint8_t gpio_pin, gpio_level_t level)
 {
     assert_param(IS_GPIO_PIN(gpiox, gpio_pin));
-
-    if (level != GPIO_LEVEL_LOW)
-        gpiox->BSR |= 1 << gpio_pin;
-    else
-        gpiox->BRR |= 1 << gpio_pin;
+    if (gpiox == GPIOD && gpio_pin > GPIO_PIN_7) {
+	    if (((gpiox->ODR & (1 << gpio_pin)) == 0 ) && ((gpiox->IER & (1 << gpio_pin)) == 0 ) \
+            && ((gpiox->OER & (1 << gpio_pin)) != 0) && ((gpiox->PSR & (1 << gpio_pin)) != 0)) {
+            if (level == GPIO_LEVEL_LOW) {
+                gpiox->ODR &= ~(1 << gpio_pin);
+                gpiox->IER &= ~(1 << gpio_pin);
+                gpiox->OER &= ~(1 << gpio_pin);
+                gpiox->PSR |= (1 << gpio_pin);
+            }
+        } else if (((gpiox->ODR & (1 << gpio_pin)) == 0 ) && ((gpiox->IER & (1 << gpio_pin)) == 0 ) && \
+                   ((gpiox->OER & (1 << gpio_pin)) == 0) && ((gpiox->PSR & (1 << gpio_pin)) != 0)) {
+            if (level != GPIO_LEVEL_LOW) {
+                gpiox->ODR &= ~(1 << gpio_pin);
+                gpiox->IER &= ~(1 << gpio_pin);
+                gpiox->OER |= (1 << gpio_pin);
+                gpiox->PSR |= (1 << gpio_pin);
+            }
+        } else {
+            if (level != GPIO_LEVEL_LOW)
+                gpiox->BSR |= 1 << gpio_pin;
+            else
+                gpiox->BRR |= 1 << gpio_pin;
+        }
+    } else {
+        if (level != GPIO_LEVEL_LOW)
+            gpiox->BSR |= 1 << gpio_pin;
+        else
+            gpiox->BRR |= 1 << gpio_pin;
+    }
 }
 
 /**
@@ -294,7 +319,7 @@ void gpio_config_drive_capability(gpio_t* gpiox, uint8_t gpio_pin, gpio_drive_ca
  *           @arg GPIO_INTR_RISING_FALLING_EDGE: Both rising and falling edg
  * @retval None
  */
-void gpio_config_interrupt(gpio_t* gpiox, uint8_t gpio_pin, uint8_t intr_type)
+void gpio_config_interrupt(gpio_t* gpiox, uint8_t gpio_pin, gpio_intr_t intr_type)
 {
     assert_param(IS_GPIO_PIN(gpiox, gpio_pin));
     assert_param(IS_GPIO_INTR(intr_type));
@@ -402,7 +427,23 @@ void gpio_config_wakeup(gpio_t* gpiox, uint8_t gpio_pin, bool enable, gpio_level
 
 /**
  * @brief Config the wakeup setting of the specified GPIO pin
- * @note This function is used to config the wakeup setting in stop3 mode
+ * @note This function is used to config the wakeup setting of GPIO0-GPIO55 in stop3 mode.
+ *          In stop3 mode, the GPIO0-GPIO55 are divided to 14 groups. Only one gpio in the group can be configed to wakeup the system at the same time.
+ *           The following are the groups:
+ *           - GPIOA_0/1/2/3
+ *           - GPIOA_4/5/12/13
+ *           - GPIOA_8/9/10/11
+ *           - GPIOA_6/7/14/15
+ *           - GPIOB_0/1/2/3
+ *           - GPIOB_4/5/6/7
+ *           - GPIOB_8/9/10/11
+ *           - GPIOB_12/13/14/15
+ *           - GPIOC_0/1/2/3
+ *           - GPIOC_4/5/6/7
+ *           - GPIOC_8/9/10/11
+ *           - GPIOC_12/13/14/15
+ *           - GPIOD_0/1/2/3
+ *           - GPIOD_4/5/6/7
  * @param gpiox Select the GPIO peripheral number(GPIOA, GPIOB, GPIOC and GPIOD)
  * @param gpio_pin Select the GPIO pin number. 
  *          This parameter can be one of the following values:
@@ -448,4 +489,57 @@ void gpio_config_stop3_wakeup(gpio_t* gpiox, uint8_t gpio_pin, bool enable, gpio
     uint32_t tmp      = offset | (wakeup_level ? 0x4 : 0x0) | (enable ? 0x8 : 0x0);
 
     TREMO_REG_SET(gpiox->STOP3_WUCR, (tmp_mask << (4 * group)), (tmp << (4 * group)));
+}
+
+/**
+ * @brief Config iomux of the specified GPIO pin
+ * @param gpiox Select the GPIO peripheral number(GPIOA, GPIOB, GPIOC and GPIOD)
+ * @param gpio_pin Select the GPIO pin number. 
+ *          This parameter can be one of the following values:
+ *           @arg GPIO_PIN_0:  Pin 0
+ *           @arg GPIO_PIN_1:  Pin 1
+ *           @arg GPIO_PIN_2:  Pin 2
+ *           @arg GPIO_PIN_3:  Pin 3
+ *           @arg GPIO_PIN_4:  Pin 4
+ *           @arg GPIO_PIN_5:  Pin 5
+ *           @arg GPIO_PIN_6:  Pin 6
+ *           @arg GPIO_PIN_7:  Pin 7
+ *           @arg GPIO_PIN_8:  Pin 8
+ *           @arg GPIO_PIN_9:  Pin 9
+ *           @arg GPIO_PIN_10: Pin 10
+ *           @arg GPIO_PIN_11: Pin 11
+ *           @arg GPIO_PIN_12: Pin 12
+ *           @arg GPIO_PIN_13: Pin 13
+ *           @arg GPIO_PIN_14: Pin 14
+ *           @arg GPIO_PIN_15: Pin 15
+ * @param func_num The function number.
+ *          This parameter can be one of the following values:
+ *           @arg 0: The Function number 0, which is always GPIO function
+ *           @arg 1: The Fucntion number 1, please refer to the IOMUX spec
+ *           @arg 2: The Fucntion number 2, please refer to the IOMUX spec
+ *           @arg 3: The Fucntion number 3, please refer to the IOMUX spec
+ *           @arg 4: The Fucntion number 4, please refer to the IOMUX spec
+ *           @arg 5: The Fucntion number 5, please refer to the IOMUX spec
+ *           @arg 6: The Fucntion number 6, please refer to the IOMUX spec
+ *           @arg 7: The Fucntion number 7, please refer to the IOMUX spec
+ * @retval None
+ */
+void gpio_set_iomux(gpio_t* gpiox, uint8_t gpio_pin, uint8_t func_num)
+{
+    uint32_t tmp_mask = 0;
+    uint32_t tmp      = 0;
+
+    assert_param(IS_GPIO_PIN(gpiox, gpio_pin));
+
+    if (gpio_pin > GPIO_PIN_7) {
+        uint32_t index = gpio_pin - GPIO_PIN_8;
+        tmp_mask       = (gpiox == GPIOD) ? (0x7 << (3 * index)) : (0xF << (4 * index));
+        tmp            = (gpiox == GPIOD) ? (func_num << (3 * index)) : (func_num << (4 * index));
+
+        TREMO_REG_SET(gpiox->AFRH, tmp_mask, tmp);
+    } else {
+        tmp_mask = (0xF << (4 * gpio_pin));
+        tmp      = (func_num << (4 * gpio_pin));
+        TREMO_REG_SET(gpiox->AFRL, tmp_mask, tmp);
+    }
 }

@@ -54,6 +54,7 @@ int32_t flash_program_bytes(uint32_t addr, uint8_t* data, uint32_t size);
 RAM_FUNC_ATTR int32_t flash_program_line(uint32_t addr, uint8_t* data);
 
 int32_t flash_otp_program_data(uint32_t addr, uint8_t* data, uint32_t size);
+int FLASH_update_sdk(uint32_t dst_addr, const void *data, uint32_t size);
 
 #ifdef __cplusplus
 }

@@ -133,7 +133,7 @@ g_pfnVectors:
   .word     ADC_IRQHandler
   .word     AFEC_IRQHandler
   .word     SSP2_IRQHandler
-  .word     DMA1_IRQHandler
+  .word     DMA11_IRQHandler
   .word     DAC_IRQHandler
   .word     LORA_IRQHandler
   .word     GPIO_IRQHandler
@@ -145,7 +145,7 @@ g_pfnVectors:
   .word     BSTIMER1_IRQHandler
   .word     LPTIMER0_IRQHandler
   .word     SAC_IRQHandler
-  .word     DMA0_IRQHandler
+  .word     DMA00_IRQHandler
   .word     I2S_IRQHandler
   .word     LCD_IRQHandler
   .word     PWR_IRQHandler

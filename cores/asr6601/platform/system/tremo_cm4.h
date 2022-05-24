@@ -86,11 +86,11 @@ typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
 
-#ifdef RUN_IN_RAM
+//#ifdef RUN_IN_RAM
 #define RAM_FUNC_ATTR __attribute__((section(".ram_funcs")))
-#else
-#define RAM_FUNC_ATTR
-#endif
+//#else
+//#define RAM_FUNC_ATTR
+//#endif
 // ---------------------------------------------------------------------------
 
 #define ERRNO_OK      (0)

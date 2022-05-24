@@ -17,6 +17,7 @@
 #include "tremo_delay.h"
 #include "tremo_pwr.h"
 #include "tremo_uart.h"
+#include "tremo_lpuart.h"
 #include "tremo_flash.h"
 #include "rtc-board.h"
 #include "tremo_dma.h"

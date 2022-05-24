@@ -9,9 +9,7 @@
 
 void boardInitMcu( void )
 {
-    pinMode(1,ANALOG);
-    pinMode(6,ANALOG);
-    pinMode(7,ANALOG);
+	rcc_enable_peripheral_clk(RCC_PERIPHERAL_AFEC, true);
     rcc_enable_peripheral_clk(RCC_PERIPHERAL_GPIOA, true);
     rcc_enable_peripheral_clk(RCC_PERIPHERAL_GPIOB, true);
     rcc_enable_peripheral_clk(RCC_PERIPHERAL_GPIOC, true);
@@ -21,6 +19,10 @@ void boardInitMcu( void )
     rcc_enable_peripheral_clk(RCC_PERIPHERAL_RTC, true);
     rcc_enable_peripheral_clk(RCC_PERIPHERAL_SAC, true);
     rcc_enable_peripheral_clk(RCC_PERIPHERAL_LORA, true);
+
+    pinMode(1,ANALOG);
+    pinMode(6,ANALOG);
+    pinMode(7,ANALOG);
 	
     delay(2000);
     pinMode(Vext,OUTPUT);
@@ -43,6 +45,7 @@ void nvic_init()
 void system_init(void)
 {
     rcc_set_sys_clk_source(RCC_SYS_CLK_SOURCE_RCO48M);
+	//rcc_set_pclk_div(RCC_PCLK0_DIV_4,RCC_PCLK1_DIV_4);
     // FPU enable
 #if (__FPU_PRESENT == 1)
     SCB->CPACR |= ((3UL << 10 * 2) | (3UL << 11 * 2));

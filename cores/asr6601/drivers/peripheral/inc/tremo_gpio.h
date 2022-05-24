@@ -2,8 +2,8 @@
  ******************************************************************************
  * @file    tremo_gpio.h
  * @author  ASR Tremo Team
- * @version v1.1.0
- * @date    2020-10-19
+ * @version v1.6.0
+ * @date    2021-11-03
  * @brief   This file contains all the functions prototypes for the CRC firmware
  *          library.
  * @addtogroup Tremo_Drivers
@@ -85,7 +85,7 @@ typedef enum {
     GPIO_MODE_INPUT_PULL_DOWN,  /*!< Input pull-down */
     GPIO_MODE_OUTPUT_PP_HIGH,   /*!< Output push-pull high level */
     GPIO_MODE_OUTPUT_PP_LOW,    /*!< Output push-pull low level */
-    GPIO_MODE_OUTPUT_OD_HIZ,    /*!< Output open-drain hig-impedance */
+    GPIO_MODE_OUTPUT_OD_HIZ,    /*!< Output open-drain high-impedance */
     GPIO_MODE_OUTPUT_OD_LOW,    /*!< Output open-drain low level */
     GPIO_MODE_ANALOG,           /*!< Analog */
 } gpio_mode_t;
@@ -107,7 +107,7 @@ gpio_level_t gpio_read(gpio_t* gpiox, uint8_t gpio_pin);
 void gpio_write(gpio_t* gpiox, uint8_t gpio_pin, gpio_level_t level);
 void gpio_toggle(gpio_t* gpiox, uint8_t gpio_pin);
 
-void gpio_config_interrupt(gpio_t* gpiox, uint8_t gpio_pin, uint8_t intr_type);
+void gpio_config_interrupt(gpio_t* gpiox, uint8_t gpio_pin, gpio_intr_t intr_type);
 void gpio_clear_interrupt(gpio_t* gpiox, uint8_t gpio_pin);
 it_status_t gpio_get_interrupt_status(gpio_t* gpiox, uint8_t gpio_pin);
 

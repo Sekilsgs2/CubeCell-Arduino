@@ -34,20 +34,42 @@ void SX126XHal::end()
     IsrCallback = nullptr; // remove callbacks
 }
 
-uint16_t SpiInOut( uint16_t outData )
+uint16_t SpiInOut( uint16_t outData , bool read=true)
 {
     uint8_t read_data = 0;
-	bool tempIrq = BoardDisableIrq( );
+	//bool tempIrq = BoardDisableIrq( );
 	
-	while((LORAC->SSP_SR & SSP_FLAG_BUSY) == 1);
+	//while((LORAC->SSP_SR & SSP_FLAG_BUSY) == 1);
 	LORAC->SSP_DR = outData & 0xff;
-	
-	while ((LORAC->SSP_SR & SSP_FLAG_RX_FIFO_NOT_EMPTY) == 0)
-            ; /* wait till rx fifo is not empty, change to timeout mechanism */
+	while( (LORAC->SSP_SR & SSP_FLAG_TX_FIFO_EMPTY) == 0);
+	while ((LORAC->SSP_SR & SSP_FLAG_RX_FIFO_NOT_EMPTY) == 0);
 	
 	read_data = LORAC->SSP_DR & 0xFF;
 
     return( read_data );
+}
+
+uint16_t SpiOut( volatile uint8_t *outData, size_t size )
+{
+    uint8_t ret = size;
+	bool tempIrq = BoardDisableIrq( );
+	
+	while( ((LORAC->SSP_SR & SSP_FLAG_TX_FIFO_NOT_FULL) == 1) && (size > 0)) {
+		LORAC->SSP_DR = *outData & 0xff;
+		outData++;
+		size--;
+	}
+	if (size == 0 )
+		return ret;
+	else {
+		while((LORAC->SSP_SR & SSP_FLAG_BUSY) == 1);
+		while( ((LORAC->SSP_SR & SSP_FLAG_TX_FIFO_NOT_FULL) == 1) && (size > 0)) {
+		LORAC->SSP_DR = *outData & 0xff;
+		outData++;
+		size--;
+	}
+	}
+	return ret;
 }
 
 void SX126XHal::init()
@@ -81,7 +103,7 @@ void SX126XHal::reset(void)
     delayMicroseconds(10);
 
     SpiInOut( SX126X_RADIO_GET_STATUS );
-    uint8_t stat = SpiInOut( 0x00 );
+    uint8_t stat = SpiInOut( 0x00);
 
     LORAC->NSS_CR = 1;
 	
@@ -132,7 +154,7 @@ void SX126XHal::ReadCommand(SX126X_RadioCommands_t command, uint8_t *buffer, uin
     SpiInOut( 0x00 );
     for( uint16_t i = 0; i < size; i++ )
     {
-        buffer[i] = SpiInOut( 0 );
+        buffer[i] = SpiInOut( 0);
     }
 
     LORAC->NSS_CR = 1;
@@ -173,7 +195,7 @@ void SX126XHal::ReadRegister(uint16_t address, uint8_t *buffer, uint8_t size)
     SpiInOut( 0 );
     for( uint16_t i = 0; i < size; i++ )
     {
-        buffer[i] = SpiInOut( 0 );
+        buffer[i] = SpiInOut( 0);
     }
     LORAC->NSS_CR = 1;
 }
@@ -188,11 +210,17 @@ uint8_t SX126XHal::ReadRegister(uint16_t address)
 void SX126XHal::WriteBuffer(uint8_t offset, volatile uint8_t *buffer, uint8_t size)
 {
     WaitOnBusy();
+	
+	uint8_t buf[2];
 
     LORAC->NSS_CR = 0;
-
+	//buf[0] = SX126X_RADIO_WRITE_BUFFER;
+	//buf[1] = offset;
+	
     SpiInOut( SX126X_RADIO_WRITE_BUFFER );
     SpiInOut( offset );
+	//SpiOut(buf,2);
+	//SpiOut(buffer,size);
     for( uint16_t i = 0; i < size; i++ )
     {
         SpiInOut( buffer[i] );
@@ -211,7 +239,7 @@ void SX126XHal::ReadBuffer(uint8_t offset, volatile uint8_t *buffer, uint8_t siz
     SpiInOut( 0 );
     for( uint16_t i = 0; i < size; i++ )
     {
-        buffer[i] = SpiInOut( 0 );
+        buffer[i] = SpiInOut( 0, true );
     }
     LORAC->NSS_CR = 1;
 }

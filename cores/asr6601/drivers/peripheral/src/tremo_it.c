@@ -129,9 +129,14 @@ void TIMER0_IRQHandler(void)
 */
 extern bool uart0started;
 
-void DMA1_IRQHandler(void)
+void DMA11_IRQHandler(void)
 {
     dma1_IRQHandler();
+}
+
+void DMA00_IRQHandler(void)
+{
+    dma0_IRQHandler();
 }
 
 void RTC_IRQHandler(void)
