@@ -4,20 +4,7 @@
 #include "tremo_uart.h"
 #include "uart.h"
 
-static void (*rx_callback[1])(void);
-static void (*tx_callback[1])(void);
-volatile size_t uart0_tx_size;
-volatile bool tx_state;
-volatile bool rx_state;
-
-uint8_t                  *pTxBuffPtr;              /*!< Pointer to UART Tx transfer Buffer */
-uint16_t                 TxXferSize;               /*!< UART Tx Transfer size              */
-volatile uint16_t        TxXferCount;              /*!< UART Tx Transfer */
-
-extern uint8_t *tx_buff;
-extern volatile uint16_t tx_head;
-extern volatile uint16_t tx_tail;
-extern volatile size_t tx_size;
+static UART_HandleTypeDef *uart_handlers[2] = {NULL};
 
 #define UART_CR_FLOW_CTRL_RXE     ((uint32_t)0x0200)
 #define UART_CR_FLOW_CTRL_TXE     ((uint32_t)0x0100)
@@ -42,6 +29,374 @@ extern volatile size_t tx_size;
 #define UART1_BRG_Mask            ((uint32_t)0x0007)  /*!< UART1 clock divider Mask */
 #define UART2_BRG_Mask            ((uint32_t)0x0700)  /*!< UART2 clock divider Mask */
 #define UART2_BRG_Offs            ((uint32_t)0x0008)  /*!< UART2 clock divider Offset */
+
+
+///////////////////////
+
+/* Aim of the function is to get serial_s pointer using huart pointer */
+/* Highly inspired from magical linux kernel's "container_of" */
+serial_t *get_serial_obj(UART_HandleTypeDef *huart)
+{
+  struct serial_s *obj_s;
+  serial_t *obj;
+
+  obj_s = (struct serial_s *)((char *)huart - offsetof(struct serial_s, handle));
+  obj = (serial_t *)((char *)obj_s - offsetof(serial_t, uart));
+
+  return (obj);
+}
+
+void HAL_NVIC_SetPriority(IRQn_Type IRQn, uint32_t PreemptPriority, uint32_t SubPriority)
+{
+  uint32_t prioritygroup = 0x00U;
+
+  /* Check the parameters */
+  assert_param(IS_NVIC_SUB_PRIORITY(SubPriority));
+  assert_param(IS_NVIC_PREEMPTION_PRIORITY(PreemptPriority));
+
+  prioritygroup = NVIC_GetPriorityGrouping();
+
+  NVIC_SetPriority(IRQn, NVIC_EncodePriority(prioritygroup, PreemptPriority, SubPriority));
+}
+
+void HAL_UART_Init(UART_HandleTypeDef *huart)
+{
+  /* Check the UART handle allocation */
+  if (huart == NULL)
+  {
+    return HAL_ERROR;
+  }
+
+  if (huart->gState == HAL_UART_STATE_RESET)
+  {
+    /* Allocate lock resource and initialize it */
+    huart->Lock = HAL_UNLOCKED;
+
+  }
+  
+  /* Initialize the UART ErrorCode */
+  huart->ErrorCode = HAL_UART_ERROR_NONE;
+
+  /* Initialize the UART State */
+  huart->gState = HAL_UART_STATE_READY;
+  huart->RxState = HAL_UART_STATE_READY;
+  
+  __HAL_UNLOCK(huart);
+
+  return;
+}
+
+/**
+  * @brief  Function called to initialize the uart interface
+  * @param  obj : pointer to serial_t structure
+  * @retval None
+  */
+void uart_init_stm32(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t parity, uint32_t stopbits)
+{
+  if (obj == NULL) {
+    return;
+  }
+
+  UART_HandleTypeDef *huart = &(obj->handle);
+
+  obj->uart = UART0;
+  
+  obj->pae = 0;
+  obj->fre = 0;
+  obj->ove = 0;
+
+
+
+  if (obj->uart == UART0) {
+  uart_cmd(UART0, DISABLE);
+  uart_cmd(UART3, DISABLE);
+
+  rcc_rst_peripheral(RCC_PERIPHERAL_UART0, true);
+  rcc_rst_peripheral(RCC_PERIPHERAL_UART0, false);
+
+  rcc_enable_peripheral_clk(RCC_PERIPHERAL_UART0, true);
+  rcc_enable_peripheral_clk(RCC_PERIPHERAL_GPIOB, true);
+  
+  rcc_rst_peripheral(RCC_PERIPHERAL_UART3, true);
+  rcc_rst_peripheral(RCC_PERIPHERAL_UART3, false);
+
+  rcc_enable_peripheral_clk(RCC_PERIPHERAL_UART3, true);
+  rcc_enable_peripheral_clk(RCC_PERIPHERAL_GPIOC, true);
+
+  //gpio_set_iomux(GPIOB, GPIO_PIN_0, 1);
+  gpio_set_iomux(GPIOB, GPIO_PIN_1, 1);
+  gpio_set_iomux(GPIOC, GPIO_PIN_12, 1);
+
+  //GPIOB -> PER |= (1 << GPIO_PIN_0);
+  //GPIOB -> PSR |= (1 << GPIO_PIN_0);
+  
+  
+	uart_cmd(UART0, DISABLE);
+	uart_cmd(UART3, DISABLE);
+    obj->index = 0;
+    obj->irq = UART0_IRQn;
+  }
+
+  /* Configure uart */
+  uart_handlers[obj->index] = huart;
+  uart_config_init( &huart->Init);
+  huart->Instance          = (uart_t *)(obj->uart);
+  huart->Init.baudrate     = baudrate;
+  huart->Init.data_width   = databits;
+  huart->Init.stop_bits     = stopbits;
+  huart->Init.parity       = parity;
+  huart->Init.mode         = UART_MODE_TX;
+  huart->Init.flow_control    = UART_FLOW_CONTROL_DISABLED;
+  //huart->Init.fifo_mode    = ENABLE;
+
+  /* Set the NVIC priority for future interrupts */
+  HAL_NVIC_SetPriority(UART3_IRQn, UART_IRQ_PRIO, UART_IRQ_SUBPRIO);
+
+  uart_init(obj->uart, &huart->Init);
+  huart->Init.mode         = UART_MODE_RX;
+  uart_init(UART3, &huart->Init);
+  HAL_UART_Init(huart);
+  uart_cmd(UART0, ENABLE);
+  uart_cmd(UART3, ENABLE);
+}
+
+/**
+  * @brief RX interrupt handler for 7 or 8 bits data word length .
+  * @param huart UART handle.
+  * @retval None
+  */
+static void UART_RxISR_8BIT(UART_HandleTypeDef *huart)
+{
+  uint16_t uhMask = 0xFF;
+  uint16_t  uhdata;
+  serial_t *obj = get_serial_obj(huart);
+
+  /* Check that a Rx process is ongoing */
+  if (huart->RxState == HAL_UART_STATE_BUSY_RX)
+  {
+    uhdata = (uint16_t) READ_REG(UART3->DR);
+    *huart->pRxBuffPtr = (uint8_t)(uhdata & (uint8_t)uhMask);
+    huart->pRxBuffPtr++;
+    huart->RxXferCount--;
+
+    if (huart->RxXferCount == 0U)
+    {
+      /* Disable the UART Parity Error Interrupt and RXNE interrupts */
+      ATOMIC_CLEAR_BIT(UART3->ICR, (UART_INTERRUPT_RX_DONE | UART_INTERRUPT_FRAME_ERROR | UART_INTERRUPT_OVERRUN_ERROR | UART_INTERRUPT_PARITY_ERROR));
+
+      /* Rx process is completed, restore huart->RxState to Ready */
+      huart->RxState = HAL_UART_STATE_READY;
+
+      /* Clear RxISR function pointer */
+      huart->RxISR = NULL;
+
+
+      /*Call legacy weak Rx complete callback*/
+	  if (obj) {
+		obj->rx_callback(obj);
+	  }
+
+    }
+  }
+  else
+  {
+    /* Clear RXNE interrupt flag */
+    //__HAL_UART_SEND_REQ(huart, UART_RXDATA_FLUSH_REQUEST);
+  }
+}
+
+
+/**
+  * @brief  Start Receive operation in interrupt mode.
+  * @note   This function could be called by all HAL UART API providing reception in Interrupt mode.
+  * @note   When calling this function, parameters validity is considered as already checked,
+  *         i.e. Rx State, buffer address, ...
+  *         UART Handle is assumed as Locked.
+  * @param  huart UART handle.
+  * @param  pData Pointer to data buffer (u8 or u16 data elements).
+  * @param  Size  Amount of data elements (u8 or u16) to be received.
+  * @retval HAL status
+  */
+HAL_StatusTypeDef UART_Start_Receive_IT(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size)
+{
+  huart->pRxBuffPtr  = pData;
+  huart->RxXferSize  = Size;
+  huart->RxXferCount = Size;
+  huart->RxISR       = NULL;
+
+  huart->ErrorCode = HAL_UART_ERROR_NONE;
+  huart->RxState = HAL_UART_STATE_BUSY_RX;
+
+  /* Enable the UART Error Interrupt: (Frame error, noise error, overrun error) */
+  ATOMIC_SET_BIT(UART3->IMSC, UART_INTERRUPT_OVERRUN_ERROR);
+
+  huart->RxISR = UART_RxISR_8BIT;
+
+  __HAL_UNLOCK(huart);
+
+  /* Enable the UART Parity Error interrupt and Data Register Not Empty interrupt */
+  ATOMIC_SET_BIT(UART3->IMSC, UART_INTERRUPT_RX_DONE);
+  return HAL_OK;
+}
+
+
+HAL_StatusTypeDef HAL_UART_Receive_IT(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size)
+{
+  /* Check that a Rx process is not already ongoing */
+  if (huart->RxState == HAL_UART_STATE_READY)
+  {
+    if ((pData == NULL) || (Size == 0U))
+    {
+      return HAL_ERROR;
+    }
+
+    __HAL_LOCK(huart);
+
+    /* Set Reception type to Standard reception */
+    //huart->ReceptionType = HAL_UART_RECEPTION_STANDARD;
+
+    /* Check that USART RTOEN bit is set */
+    //if (READ_BIT(huart->Instance->CR2, USART_CR2_RTOEN) != 0U)
+    //{
+      /* Enable the UART Receiver Timeout Interrupt */
+      //ATOMIC_SET_BIT(huart->Instance->IMSC, UART_INTERRUPT_RX_TIMEOUT);
+    //}
+
+    return (UART_Start_Receive_IT(huart, pData, Size));
+  }
+  else
+  {
+    return HAL_BUSY;
+  }
+}
+
+
+/**
+  * @brief TX interrupt handler for 7 or 8 bits data word length .
+  * @note   Function is called under interruption only, once
+  *         interruptions have been enabled by HAL_UART_Transmit_IT().
+  * @param huart UART handle.
+  * @retval None
+  */
+static void UART_TxISR_8BIT(UART_HandleTypeDef *huart)
+{
+  serial_t *obj = get_serial_obj(huart);
+  /* Check that a Tx process is ongoing */
+  if (huart->gState == HAL_UART_STATE_BUSY_TX)
+  {
+    if (huart->TxXferCount == 0U)
+    {
+      /* Disable the UART Transmit Data Register Empty Interrupt */
+      //ATOMIC_CLEAR_BIT(huart->Instance->IMSC, UART_INTERRUPT_TX_DONE);
+
+	  /* Tx process is ended, restore huart->gState to Ready */
+      huart->gState = HAL_UART_STATE_READY;
+
+      /* Cleat TxISR function pointer */
+      huart->TxISR = NULL;
+	  
+	        /*Call legacy weak Rx complete callback*/
+	  if (obj) {
+		obj->tx_callback(obj);
+	  }
+	  
+    }
+    else
+    {
+      huart->Instance->DR = (uint8_t)(*huart->pTxBuffPtr & (uint8_t)0xFF);
+      huart->pTxBuffPtr++;
+      huart->TxXferCount--;
+    }
+  }
+}
+
+/**
+  * @brief Send an amount of data in interrupt mode.
+  * @note   When UART parity is not enabled (PCE = 0), and Word Length is configured to 9 bits (M1-M0 = 01),
+  *         the sent data is handled as a set of u16. In this case, Size must indicate the number
+  *         of u16 provided through pData.
+  * @note   When UART parity is not enabled (PCE = 0), and Word Length is configured to 9 bits (M1-M0 = 01),
+  *         address of user data buffer containing data to be sent, should be aligned on a half word frontier (16 bits)
+  *         (as sent data will be handled using u16 pointer cast). Depending on compilation chain,
+  *         use of specific alignment compilation directives or pragmas might be required
+  *         to ensure proper alignment for pData.
+  * @param huart UART handle.
+  * @param pData Pointer to data buffer (u8 or u16 data elements).
+  * @param Size  Amount of data elements (u8 or u16) to be sent.
+  * @retval HAL status
+  */
+HAL_StatusTypeDef HAL_UART_Transmit_IT(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size)
+{
+  /* Check that a Tx process is not already ongoing */
+  if (huart->gState == HAL_UART_STATE_READY)
+  {
+    if ((pData == NULL) || (Size == 0U))
+    {
+      return HAL_ERROR;
+    }
+
+    __HAL_LOCK(huart);
+
+    huart->pTxBuffPtr  = pData;
+    huart->TxXferSize  = Size;
+    huart->TxXferCount = Size;
+    huart->TxISR       = NULL;
+
+    huart->ErrorCode = HAL_UART_ERROR_NONE;
+    huart->gState = HAL_UART_STATE_BUSY_TX;
+
+    huart->TxISR = UART_TxISR_8BIT;
+
+    __HAL_UNLOCK(huart);
+
+    /* Enable the Transmit Data Register Empty interrupt */
+    ATOMIC_SET_BIT(huart->Instance->IMSC, UART_INTERRUPT_TX_DONE);
+	
+	
+	if (huart->TxISR != NULL)
+    {
+      huart->TxISR(huart);
+    }
+
+    return HAL_OK;
+  }
+  else
+  {
+    return HAL_BUSY;
+  }
+}
+
+/**
+ * Begin asynchronous RX transfer (enable interrupt for data collecting)
+ *
+ * @param obj : pointer to serial_t structure
+ * @param callback : function call at the end of reception
+ * @retval none
+ */
+void uart_attach_rx_callback(serial_t *obj, void (*callback)(serial_t *))
+{
+  if (obj == NULL) {
+    return;
+  }
+
+  /* Exit if a reception is already on-going */
+  if (serial_rx_active(obj)) {
+    return;
+  }
+  obj->rx_callback = callback;
+
+  /* Must disable interrupt to prevent handle lock contention */
+  NVIC_DisableIRQ(UART3_IRQn);
+
+  HAL_UART_Receive_IT(uart_handlers[obj->index], &(obj->recv), 1);
+
+  /* Enable interrupt */
+  NVIC_EnableIRQ(UART3_IRQn);
+}
+
+
+//////////////////////
+
 
 uint32_t calc_uart_baud(uint32_t uart_clk, uint32_t baud)
 {
@@ -169,8 +524,6 @@ void uart_deinit(uart_t* uartx)
     rcc_enable_peripheral_clk(peripheral, false);
     rcc_rst_peripheral(peripheral, true);
     rcc_rst_peripheral(peripheral, false);
-	//tx_state = false;
-	rx_state = false;
 }
 
 /**
@@ -277,11 +630,10 @@ int32_t uart_init(uart_t* uartx, uart_config_t* config)
     uint32_t clk_src       = 0;
 	uint32_t tmpreg;
 
-	tx_state = false;
-	rx_state = false;
-	
     // disable UART
-    uartx->CR &= ~UART_CR_UART_EN;
+	uartx->RSC_ECR = 0;
+	//uartx->CR = 0;
+    //uartx->CR &= ~UART_CR_UART_EN;
     // flush fifo by setting FEN = 0
     uartx->LCR_H &= ~UART_LCR_H_FEN;
     uartx->IMSC = 0;
@@ -357,7 +709,7 @@ int32_t uart_init(uart_t* uartx, uart_config_t* config)
 	
 
     TREMO_REG_SET(uartx->CR, UART_CR_UART_MODE, config->mode);
-    TREMO_REG_SET(uartx->CR, UART_CR_FLOW_CTRL, UART_CR_FLOW_CTRL_RXE | UART_CR_FLOW_CTRL_TXE);
+    TREMO_REG_SET(uartx->CR, UART_CR_FLOW_CTRL, config->flow_control);
 
     return ERRNO_OK;
 }
@@ -445,105 +797,172 @@ void uart_dma_onerror_config(uart_t* uartx, bool new_state)
 }
 
 
-void UART00_IRQHandler(void) {
-	/*
-  if ( uart_get_interrupt_status(UART0, UART_INTERRUPT_RX_DONE) )
+/**
+  * @brief Handle UART interrupt request.
+  * @param huart UART handle.
+  * @retval None
+  */
+void HAL_UART_IRQHandler(UART_HandleTypeDef *huart)
+{
+  uint32_t isrflags   = READ_REG(UART3->MIS);
+
+  uint32_t errorflags;
+  uint32_t errorcode;
+  
+  serial_t *obj = get_serial_obj(huart);
+
+  /* If no error occurs */
+  errorflags = (isrflags & (uint32_t)(UART_INTERRUPT_PARITY_ERROR | UART_INTERRUPT_FRAME_ERROR | UART_INTERRUPT_OVERRUN_ERROR));
+  if (errorflags == 0U)
   {
-	if (rx_callback[0])
-		rx_callback[0]();
-    uart_clear_interrupt(UART0, UART_INTERRUPT_RX_DONE);
+    /* UART in mode Receiver ---------------------------------------------------*/
+   if ( uart_get_interrupt_status(UART3, UART_INTERRUPT_RX_DONE) )
+    {
+      if (huart->RxISR != NULL)
+      {
+        huart->RxISR(huart);
+      }
+	  uart_clear_interrupt(UART3, UART_INTERRUPT_RX_DONE);
+      //return;
+    }
   }
 
-*/
-  if ( uart_get_interrupt_status(UART0, UART_INTERRUPT_RX_TIMEOUT) )
+  /* If some errors occur */
+  if ((errorflags != 0))
   {
-	//if (rx_callback[0])
-		//rx_callback[0]();
-    uart_clear_interrupt(UART0, UART_INTERRUPT_RX_TIMEOUT);
-  }
+    /* UART parity error interrupt occurred -------------------------------------*/
+    if (((isrflags & UART_INTERRUPT_PARITY_ERROR) != 0U))
+    {
+      //__HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_PEF);
+	  obj->pae++;
+	  uart_clear_interrupt(UART3, UART_INTERRUPT_PARITY_ERROR);
+
+      huart->ErrorCode |= HAL_UART_ERROR_PE;
+    }
+
+    /* UART frame error interrupt occurred --------------------------------------*/
+    if (((isrflags & UART_INTERRUPT_FRAME_ERROR) != 0U) )
+    {
+		obj->fre++;
+      //__HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_FEF);
+	  uart_clear_interrupt(UART3, UART_INTERRUPT_FRAME_ERROR);
+
+      huart->ErrorCode |= HAL_UART_ERROR_FE;
+    }
+
+    /* UART Over-Run interrupt occurred -----------------------------------------*/
+    if (((isrflags & UART_INTERRUPT_OVERRUN_ERROR) != 0U))
+    {
+      //__HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_OREF);
+	  obj->ove++;
+	  uart_clear_interrupt(UART3, UART_INTERRUPT_OVERRUN_ERROR);
+
+      huart->ErrorCode |= HAL_UART_ERROR_ORE;
+    }
+
+    /* Call UART Error Call back function if need be ----------------------------*/
+    if (huart->ErrorCode != HAL_UART_ERROR_NONE)
+    {
+      /* UART in mode Receiver --------------------------------------------------*/
+      if (((isrflags & UART_INTERRUPT_RX_DONE) != 0U))
+      {
+        if (huart->RxISR != NULL)
+        {
+          huart->RxISR(huart);
+        }
+      }
+
+      /* If Error is to be considered as blocking :
+          - Receiver Timeout error in Reception
+          - Overrun error in Reception
+          - any error occurs in DMA mode reception
+      */
+      errorcode = huart->ErrorCode;
+
+    }
+    //return;
+
+  } /* End if some error occurs */
+
+}
+
+void UART00_IRQHandler(void) {
+
+  /* Clear pending interrupt */
+  
+  NVIC_ClearPendingIRQ(UART0_IRQn);
+  /* UART in mode Transmitter ------------------------------------------------*/
   if ( uart_get_interrupt_status(UART0, UART_INTERRUPT_TX_DONE) )
   {
-	//tx_uart_dma_irq_handle();
-    uart_clear_interrupt(UART0, UART_INTERRUPT_TX_DONE);
-	//while(1);
-
-	if (tx_state)
-	{
-		if (TxXferCount == 0)
-		
-		{
-			tx_state = false;
-			uart_config_interrupt(UART0, UART_INTERRUPT_RX_DONE, ENABLE);
-			if (tx_callback[0])
-				tx_callback[0]();
-		}
-		else
-		{
-			while ( (uart_get_flag_status(UART0, UART_FLAG_TX_FIFO_FULL) != 1) && (TxXferCount > 0)) {
-				UART0->DR = (uint8_t)(*pTxBuffPtr & (uint8_t)0xFF);
-				pTxBuffPtr++;
-				TxXferCount--;
-			}
-			if (TxXferCount == 0)
-			{
-				if (uart_get_flag_status(UART0, UART_FLAG_TX_FIFO_FULL) != 1)
-				{
-					tx_state = false;
-					uart_config_interrupt(UART0, UART_INTERRUPT_RX_DONE, ENABLE);
-					if (tx_callback[0])
-						tx_callback[0]();
-				}
-			}
-		}
+	uart_clear_interrupt(UART0, UART_INTERRUPT_TX_DONE);
+    if (uart_handlers[0]->TxISR != NULL)
+    {
+      uart_handlers[0]->TxISR(uart_handlers[0]);
     }
-	
+    //return;
   }
-	  
-  
+  //HAL_UART_IRQHandler(uart_handlers[0]);  
 }
 
-void uart_attach_rx_callback(void (*callback)(void)) {
-	
-	NVIC_DisableIRQ(UART0_IRQn);
-	rx_callback[0] = callback;
-	NVIC_EnableIRQ(UART0_IRQn);
+void UART33_IRQHandler(void) {
+
+  /* Clear pending interrupt */
+  NVIC_ClearPendingIRQ(UART3_IRQn);
+  HAL_UART_IRQHandler(uart_handlers[0]);  
 }
 
-uint8_t UART_Transmit_IT(uint8_t *pData, uint16_t Size) 
+
+/**
+ * Begin asynchronous TX transfer.
+ *
+ * @param obj : pointer to serial_t structure
+ * @param callback : function call at the end of transmission
+ * @retval none
+ */
+void uart_attach_tx_callback(serial_t *obj, int (*callback)(serial_t *), size_t size)
 {
-    pTxBuffPtr  = pData;
-    TxXferSize  = Size;
-    TxXferCount = Size;
-	while ( (uart_get_flag_status(UART0, UART_FLAG_TX_FIFO_FULL) != 1) && (TxXferCount > 0)) {
-		UART0->DR = (uint8_t)(*pTxBuffPtr & (uint8_t)0xFF);
-		pTxBuffPtr++;
-		TxXferCount--;
-	}
-	if (TxXferCount == 0)
-	{
-		if (uart_get_flag_status(UART0, UART_FLAG_TX_FIFO_FULL) != 1)
-		{
-			tx_state = false;
-			if (tx_callback[0])
-				tx_callback[0]();
-		}
-	}
+  if (obj == NULL) {
+    return;
+  }
+  obj->tx_callback = callback;
+
+  /* Must disable interrupt to prevent handle lock contention */
+  NVIC_DisableIRQ(obj->irq);
+  NVIC_DisableIRQ(UART3_IRQn);
+
+  /* The following function will enable UART_IT_TXE and error interrupts */
+  HAL_UART_Transmit_IT(uart_handlers[obj->index], &obj->tx_buff[obj->tx_tail], size);
+
+  /* Enable interrupt */
+  NVIC_EnableIRQ(obj->irq);
+  NVIC_EnableIRQ(UART3_IRQn);
 }
 
-void uart_attach_tx_callback(void (*callback)(void), size_t size) {
-	
-	tx_callback[0] = callback;
-	uart0_tx_size = size;
-	tx_state = true;
-	NVIC_DisableIRQ(UART0_IRQn);
-	UART_Transmit_IT(&tx_buff[tx_tail], size);
-	
-	NVIC_EnableIRQ(UART0_IRQn);
-}
-
-bool serial_rx_active(void)
+/**
+  * @brief Return the UART handle state.
+  * @param  huart Pointer to a UART_HandleTypeDef structure that contains
+  *               the configuration information for the specified UART.
+  * @retval HAL state
+  */
+HAL_UART_StateTypeDef HAL_UART_GetState(UART_HandleTypeDef *huart)
 {
-  return rx_state;
+  uint32_t temp1;
+  uint32_t temp2;
+  temp1 = huart->gState;
+  temp2 = huart->RxState;
+
+  return (HAL_UART_StateTypeDef)(temp1 | temp2);
+}
+
+/**
+ * Attempts to determine if the serial peripheral is already in use for RX
+ *
+ * @param obj The serial object
+ * @return Non-zero if the RX transaction is ongoing, 0 otherwise
+ */
+uint8_t serial_rx_active(serial_t *obj)
+{
+  return ((HAL_UART_GetState(uart_handlers[obj->index]) & HAL_UART_STATE_BUSY_RX) == HAL_UART_STATE_BUSY_RX);
 }
 
 /**
@@ -552,7 +971,30 @@ bool serial_rx_active(void)
  * @param obj The serial object
  * @return Non-zero if the TX transaction is ongoing, 0 otherwise
  */
-bool serial_tx_active(void)
+uint8_t serial_tx_active(serial_t *obj)
 {
-  return tx_state;
+  return ((HAL_UART_GetState(uart_handlers[obj->index]) & HAL_UART_STATE_BUSY_TX) == HAL_UART_STATE_BUSY_TX);
 }
+
+/**
+  * @brief  Read receive byte from uart
+  * @param  obj : pointer to serial_t structure
+  * @retval last character received
+  */
+int uart_getc(serial_t *obj, unsigned char *c)
+{
+  if (obj == NULL) {
+    return -1;
+  }
+
+  if (serial_rx_active(obj)) {
+    return -1; /* Transaction ongoing */
+  }
+
+  *c = (unsigned char)(obj->recv);
+  /* Restart RX irq */
+  HAL_UART_Receive_IT(uart_handlers[obj->index], &(obj->recv), 1);
+
+  return 0;
+}
+

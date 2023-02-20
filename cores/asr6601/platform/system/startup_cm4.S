@@ -118,7 +118,7 @@ g_pfnVectors:
   .word     RTC_IRQHandler
   .word     WDG_IRQHandler
   .word     EFC_IRQHandler
-  .word     UART3_IRQHandler
+  .word     UART33_IRQHandler
   .word     I2C2_IRQHandler
   .word     UART00_IRQHandler
   .word     UART1_IRQHandler

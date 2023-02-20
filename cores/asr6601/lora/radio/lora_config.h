@@ -9,8 +9,8 @@ extern "C" {
 
 #define PRINT_BY_DMA
 
-#define CONFIG_LORA_RFSW_CTRL_PIN   59
-#define CONFIG_LORA_RFSW_VDD_PIN    45
+#define CONFIG_LORA_RFSW_CTRL_PIN   GPIO_PIN_59
+#define CONFIG_LORA_RFSW_VDD_PIN    GPIO_PIN_45
 
 #ifdef __cplusplus
 }

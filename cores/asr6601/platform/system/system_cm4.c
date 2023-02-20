@@ -20,32 +20,31 @@ void boardInitMcu( void )
     rcc_enable_peripheral_clk(RCC_PERIPHERAL_SAC, true);
     rcc_enable_peripheral_clk(RCC_PERIPHERAL_LORA, true);
 
-    pinMode(1,ANALOG);
-    pinMode(6,ANALOG);
-    pinMode(7,ANALOG);
+    //pinMode(1,ANALOG);
+    //pinMode(6,ANALOG);
+    //pinMode(7,ANALOG);
 	
-    delay(2000);
     pinMode(Vext,OUTPUT);
     digitalWrite(Vext,HIGH);
     pinMode(VBAT_ADC_CTL, OUTPUT);
     digitalWrite(VBAT_ADC_CTL,HIGH);
-    delay(100);
     systime = 0;
 }
 
 
 void nvic_init()
 {
-    NVIC_SetPriority(PendSV_IRQn, (1<<__NVIC_PRIO_BITS) - 1);
+	NVIC_SetPriorityGrouping(0x00000003U);
+
+    //NVIC_SetPriority(PendSV_IRQn, (1<<__NVIC_PRIO_BITS) - 1);
     
-    for(int i=0; i<=IWDG_IRQn; i++)
-        NVIC_SetPriority(i, configLIBRARY_NORMAL_INTERRUPT_PRIORITY);
+    //for(int i=0; i<=IWDG_IRQn; i++)
+        //NVIC_SetPriority(i, configLIBRARY_NORMAL_INTERRUPT_PRIORITY);
 }
 
 void system_init(void)
 {
     rcc_set_sys_clk_source(RCC_SYS_CLK_SOURCE_RCO48M);
-	//rcc_set_pclk_div(RCC_PCLK0_DIV_4,RCC_PCLK1_DIV_4);
     // FPU enable
 #if (__FPU_PRESENT == 1)
     SCB->CPACR |= ((3UL << 10 * 2) | (3UL << 11 * 2));

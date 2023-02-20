@@ -43,6 +43,8 @@
 #define CONFIG_LORA_RFSW_CTRL_PIN   59
 #define CONFIG_LORA_RFSW_VDD_PIN    45
 
+#define RADIO_SNR_SCALE 4
+
 #define SX127X_SYNC_WORD                              0x12
 
 /*!

@@ -196,36 +196,49 @@ int32_t flash_otp_program_data(uint32_t addr, uint8_t* data, uint32_t size)
     return flash_program_bytes(addr, data, size);
 }
 
-int FLASH_update_sdk(uint32_t dst_addr, const void *data, uint32_t size)
-{
-  uint32_t v6; // r0
-  char *v7; // r7
-  uint32_t v8; // r10
-  uint32_t v9; // r6
+#define FLASH_OP_BEGIN()    __disable_irq()
+#define FLASH_OP_END()      __enable_irq()
 
-  v7 = (char *)malloc(0x1000u);
-  if ( !v7 )
-    return 0xFFFFFFFF;
-  while ( 1 )
-  {
-    v8 = dst_addr - (dst_addr & 0xFFFFF000);
-    v9 = 4096 - v8;
-    if ( (int)(4096 - v8) >= (int)size )
-      v9 = size;
-    memcpy(v7, (const void *)(dst_addr & 0xFFFFF000), 0x1000u);
-    memcpy(&v7[v8], data, v9);
-    if ( flash_erase_page(dst_addr & 0xFFFFF000) )
-      printf("Error erase %u bytes at 0x%08x\n", 0x1000, dst_addr & 0xFFFFF000);
-    if ( flash_program_bytes(dst_addr & 0xFFFFF000, v7, 4096) )
-      break;
-    size -= v9;
-    dst_addr += v9;
-    data = (char *)data + v9;
-    if ( (int)size <= 0 )
-      goto LABEL_13;
-  }
-  printf("Error writing %u bytes at 0x%08x\n", 0x1000, dst_addr & 0xFFFFF000);
-LABEL_13:
-  free(v7);
-  return 0;
+#ifndef FLASH_TYPEPROGRAM_HALFWORD
+#define FLASH_TYPEPROGRAM_HALFWORD 0 // should fail
+#endif
+
+/* Start and end addresses of the user application. */
+#ifndef FLASH_BASE
+#define FLASH_BASE ((uint32_t)0x08000000u)
+#endif
+
+int FLASH_update_sdk(uint32_t dst_addr, const void *data, uint32_t size_int)
+{
+  uint32_t size = size_int;
+  uint32_t address = dst_addr;
+	
+
+    while(size){
+        FLASH_OP_BEGIN();
+        if(flash_erase_page(address) != ERRNO_OK) {
+            FLASH_OP_END();
+            return -1;
+        }
+        FLASH_OP_END();
+        if(size >= FLASH_PAGE_SIZE){
+            size -= FLASH_PAGE_SIZE;
+            address += FLASH_PAGE_SIZE;
+        }else{
+            size = 0;
+        }
+    }
+	
+	int ret = 0;
+    if(FLASH_LINE_SIZE == size){
+        FLASH_OP_BEGIN();
+        ret = flash_program_line(dst_addr, data);
+        FLASH_OP_END();
+    }else{
+        FLASH_OP_BEGIN();
+        ret = flash_program_bytes(dst_addr, data, size_int);
+        FLASH_OP_END();
+    }
+	
+  return ret;
 }

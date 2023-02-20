@@ -28,7 +28,6 @@ SX126XHal::SX126XHal()
 
 void SX126XHal::end()
 {	
-	digitalWrite(CONFIG_LORA_RFSW_VDD_PIN,LOW);
 	LORAC->SSP_CR1 &= ~(0x1 << 1);
 	lora_callbacks[0] = nullptr;
     IsrCallback = nullptr; // remove callbacks
@@ -83,9 +82,8 @@ void SX126XHal::init()
     //enable LORA_IRQHandler wakeup
     TREMO_REG_WR(0x40001804,TREMO_REG_RD(0x40001804)|0x80);
     //NVIC_SetPriority(LORA_IRQn, 254);
-    pinMode(CONFIG_LORA_RFSW_VDD_PIN,OUTPUT);
-    digitalWrite(CONFIG_LORA_RFSW_VDD_PIN,1);
-    iomux(CONFIG_LORA_RFSW_CTRL_PIN, 3);
+    gpio_set_iomux(GPIOD, CONFIG_LORA_RFSW_CTRL_PIN, 3);
+	gpio_init(GPIOA, CONFIG_LORA_RFSW_VDD_PIN, GPIO_MODE_OUTPUT_PP_HIGH);
 	lora_callbacks[0] = dioISR;
 }
 
@@ -96,6 +94,7 @@ void SX126XHal::reset(void)
     LORAC->CR1 &= ~(1<<7); //por
     LORAC->CR0 |= 1<<5; //irq0
     LORAC->CR1 |= 0x1;  //tcxo
+	
 
     while((LORAC->SR & 0x100));  
 	
@@ -109,9 +108,9 @@ void SX126XHal::reset(void)
 	
 	if (stat != 0xA2) //chip not found!
 		while(1);
-		
+	
+	HAL_NVIC_SetPriority(LORA_IRQn, 6, 0);
     NVIC_EnableIRQ(LORA_IRQn);
-    NVIC_SetPriority(LORA_IRQn,2);
 }
 
 void SX126XHal::WriteCommand(SX126X_RadioCommands_t command, uint8_t val)

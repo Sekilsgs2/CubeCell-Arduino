@@ -26,6 +26,7 @@
 #include "tremo_bstimer.h"
 #include "tremo_system.h"
 #include "tremo_dma_handshake.h"
+#include "tremo_eeprom.h"
 #include "asr6601_spi.h"
 #include "utilities.h"
 #include "pins_arduino.h"
@@ -90,7 +91,7 @@ typedef enum {
 #define FLASH_START_ADDR              FLASH_BASE
 #define FLASH_END_ADDR                FLASH_BASE+128*1024
 
-#define FLASH_EEPROM_BASE             FLASH_BASE+128*1024-4096
+#define FLASH_EEPROM_BASE             FLASH_BASE+128*1024-8192
 #define FLASH_EEPROM_END              FLASH_BASE+128*1024
 
 typedef void (*timer_callback_func)();
@@ -157,6 +158,8 @@ int FLASH_update(uint32_t dst_addr, const void *data, uint32_t size);
 uint32_t millis(void);
 uint32_t micros(void);
 uint64_t getID(void);
+
+void HAL_NVIC_SetPriority(IRQn_Type IRQn, uint32_t PreemptPriority, uint32_t SubPriority);
 
 #ifdef __cplusplus 
 }

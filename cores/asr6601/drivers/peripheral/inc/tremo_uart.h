@@ -57,6 +57,114 @@ extern "C" {
 #define UART_IRDA_MODE_LP     1  /*!< IRDA low power mode */
 #define UART_IRDA_LPBAUD16    ((uint32_t)1843200) /*!< IRDA low power baudrate */
 
+#ifndef UART_IRQ_PRIO
+#define UART_IRQ_PRIO       1
+#endif
+#ifndef UART_IRQ_SUBPRIO
+#define UART_IRQ_SUBPRIO    0
+#endif
+
+
+
+/** @defgroup UART_State_Definition UART State Code Definition
+  * @{
+  */
+#define  HAL_UART_STATE_RESET         0x00000000U    /*!< Peripheral is not initialized
+                                                          Value is allowed for gState and RxState */
+#define  HAL_UART_STATE_READY         0x00000020U    /*!< Peripheral Initialized and ready for use
+                                                          Value is allowed for gState and RxState */
+#define  HAL_UART_STATE_BUSY          0x00000024U    /*!< an internal process is ongoing
+                                                          Value is allowed for gState only */
+#define  HAL_UART_STATE_BUSY_TX       0x00000021U    /*!< Data Transmission process is ongoing
+                                                          Value is allowed for gState only */
+#define  HAL_UART_STATE_BUSY_RX       0x00000022U    /*!< Data Reception process is ongoing
+                                                          Value is allowed for RxState only */
+#define  HAL_UART_STATE_BUSY_TX_RX    0x00000023U    /*!< Data Transmission and Reception process is ongoing
+                                                          Not to be used for neither gState nor RxState.Value is result
+                                                          of combination (Or) between gState and RxState values */
+#define  HAL_UART_STATE_TIMEOUT       0x000000A0U    /*!< Timeout state
+                                                          Value is allowed for gState only */
+#define  HAL_UART_STATE_ERROR         0x000000E0U    /*!< Error
+                                                          Value is allowed for gState only */
+														  
+#define __HAL_LOCK(__HANDLE__)                                           \
+                                do{                                        \
+                                    if((__HANDLE__)->Lock == HAL_LOCKED)   \
+                                    {                                      \
+                                       return HAL_BUSY;                    \
+                                    }                                      \
+                                    else                                   \
+                                    {                                      \
+                                       (__HANDLE__)->Lock = HAL_LOCKED;    \
+                                    }                                      \
+                                  }while (0U)
+
+#define __HAL_UNLOCK(__HANDLE__)                                          \
+                                  do{                                       \
+                                      (__HANDLE__)->Lock = HAL_UNLOCKED;    \
+                                    }while (0U)
+
+/** @addtogroup Exported_macros
+  * @{
+  */
+#define SET_BIT(REG, BIT)     ((REG) |= (BIT))
+
+#define CLEAR_BIT(REG, BIT)   ((REG) &= ~(BIT))
+
+#define READ_BIT(REG, BIT)    ((REG) & (BIT))
+
+#define CLEAR_REG(REG)        ((REG) = (0x0))
+
+#define WRITE_REG(REG, VAL)   ((REG) = (VAL))
+
+#define READ_REG(REG)         ((REG))
+
+#define MODIFY_REG(REG, CLEARMASK, SETMASK)  WRITE_REG((REG), (((READ_REG(REG)) & (~(CLEARMASK))) | (SETMASK)))
+
+/* Use of interrupt control for register exclusive access */
+/* Atomic 32-bit register access macro to set one or several bits */
+#define ATOMIC_SET_BIT(REG, BIT)                             \
+  do {                                                       \
+    uint32_t primask;                                        \
+    primask = __get_PRIMASK();                               \
+    __set_PRIMASK(1);                                        \
+    SET_BIT((REG), (BIT));                                   \
+    __set_PRIMASK(primask);                                  \
+  } while(0)
+
+/* Atomic 32-bit register access macro to clear one or several bits */
+#define ATOMIC_CLEAR_BIT(REG, BIT)                           \
+  do {                                                       \
+    uint32_t primask;                                        \
+    primask = __get_PRIMASK();                               \
+    __set_PRIMASK(1);                                        \
+    CLEAR_BIT((REG), (BIT));                                 \
+    __set_PRIMASK(primask);                                  \
+  } while(0)
+
+/* Atomic 32-bit register access macro to clear and set one or several bits */
+#define ATOMIC_MODIFY_REG(REG, CLEARMSK, SETMASK)            \
+  do {                                                       \
+    uint32_t primask;                                        \
+    primask = __get_PRIMASK();                               \
+    __set_PRIMASK(1);                                        \
+    MODIFY_REG((REG), (CLEARMSK), (SETMASK));                \
+    __set_PRIMASK(primask);                                  \
+  } while(0)
+
+/** @defgroup UART_Error_Definition   UART Error Definition
+  * @{
+  */
+#define  HAL_UART_ERROR_NONE             (0x00000000U)    /*!< No error                */
+#define  HAL_UART_ERROR_PE               (0x00000001U)    /*!< Parity error            */
+#define  HAL_UART_ERROR_NE               (0x00000002U)    /*!< Noise error             */
+#define  HAL_UART_ERROR_FE               (0x00000004U)    /*!< Frame error             */
+#define  HAL_UART_ERROR_ORE              (0x00000008U)    /*!< Overrun error           */
+#define  HAL_UART_ERROR_DMA              (0x00000010U)    /*!< DMA transfer error      */
+#define  HAL_UART_ERROR_RTO              (0x00000020U)    /*!< Receiver Timeout error  */										
+
+
+
 /**
  * @brief UART data width
  */
@@ -152,6 +260,7 @@ void uart_deinit(uart_t* uartx);
 void uart_config_init(uart_config_t* config);
 int32_t uart_init(uart_t* uartx, uart_config_t* config);
 
+
 void uart_cmd(uart_t* uartx, bool newstate);
 void uart_send_data(uart_t* uartx, uint8_t data);
 uint8_t uart_receive_data(uart_t* uartx);
@@ -172,15 +281,137 @@ void uart_dma_config(uart_t* uartx, uart_dma_req_t dma_req, bool new_state);
 void uart_dma_onerror_config(uart_t* uartx, bool new_state);
 
 uint8_t uart_get_dr0(void);
-void uart_attach_rx_callback(void (*callback)(void));
-void uart_attach_tx_callback(void (*callback)(void), size_t size);
+//void uart_attach_rx_callback(void (*callback)(void));
+//void uart_attach_tx_callback(void (*callback)(void), volatile uint8_t *Data, size_t size);
 
-bool serial_tx_active(void);
-bool serial_rx_active(void);
+//bool serial_tx_active(void);
+//bool serial_rx_active(void);
 
 uint8_t UART_Transmit_IT(uint8_t *pData, uint16_t Size);
 
 extern void tx_uart_dma_irq_handle(void);
+
+/* Exported types ------------------------------------------------------------*/
+
+
+/** 
+  * @brief  HAL Status structures definition  
+  */  
+typedef enum 
+{
+  HAL_OK       = 0x00U,
+  HAL_ERROR    = 0x01U,
+  HAL_BUSY     = 0x02U,
+  HAL_TIMEOUT  = 0x03U
+} HAL_StatusTypeDef;
+
+/** 
+  * @brief  HAL Lock structures definition  
+  */
+typedef enum 
+{
+  HAL_UNLOCKED = 0x00U,
+  HAL_LOCKED   = 0x01U  
+} HAL_LockTypeDef;
+
+typedef uint32_t HAL_UART_StateTypeDef;
+
+/**
+  * @brief  UART handle Structure definition
+  */
+typedef struct __UART_HandleTypeDef
+{
+  uart_t            	   *Instance;                /*!< UART registers base address        */
+
+  uart_config_t         Init;                     /*!< UART communication parameters      */
+
+  uint8_t                  *pTxBuffPtr;              /*!< Pointer to UART Tx transfer Buffer */
+
+  uint16_t                 TxXferSize;               /*!< UART Tx Transfer size              */
+
+  __IO uint16_t            TxXferCount;              /*!< UART Tx Transfer Counter           */
+
+  uint8_t                  *pRxBuffPtr;              /*!< Pointer to UART Rx transfer Buffer */
+
+  uint16_t                 RxXferSize;               /*!< UART Rx Transfer size              */
+
+  __IO uint16_t            RxXferCount;              /*!< UART Rx Transfer Counter           */
+
+  void (*RxISR)(struct __UART_HandleTypeDef *huart); /*!< Function pointer on Rx IRQ handler */
+
+  void (*TxISR)(struct __UART_HandleTypeDef *huart); /*!< Function pointer on Tx IRQ handler */
+
+  HAL_LockTypeDef           Lock;                    /*!< Locking object                     */
+
+  __IO HAL_UART_StateTypeDef    gState;              /*!< UART state information related to global Handle management
+                                                          and also related to Tx operations. This parameter
+                                                          can be a value of @ref HAL_UART_StateTypeDef */
+
+  __IO HAL_UART_StateTypeDef    RxState;             /*!< UART state information related to Rx operations. This
+                                                          parameter can be a value of @ref HAL_UART_StateTypeDef */
+
+  __IO uint32_t                 ErrorCode;           /*!< UART Error code                    */
+
+#if (USE_HAL_UART_REGISTER_CALLBACKS == 1)
+  void (* TxHalfCpltCallback)(struct __UART_HandleTypeDef *huart);        /*!< UART Tx Half Complete Callback        */
+  void (* TxCpltCallback)(struct __UART_HandleTypeDef *huart);            /*!< UART Tx Complete Callback             */
+  void (* RxHalfCpltCallback)(struct __UART_HandleTypeDef *huart);        /*!< UART Rx Half Complete Callback        */
+  void (* RxCpltCallback)(struct __UART_HandleTypeDef *huart);            /*!< UART Rx Complete Callback             */
+  void (* ErrorCallback)(struct __UART_HandleTypeDef *huart);             /*!< UART Error Callback                   */
+  void (* AbortCpltCallback)(struct __UART_HandleTypeDef *huart);         /*!< UART Abort Complete Callback          */
+  void (* AbortTransmitCpltCallback)(struct __UART_HandleTypeDef *huart); /*!< UART Abort Transmit Complete Callback */
+  void (* AbortReceiveCpltCallback)(struct __UART_HandleTypeDef *huart);  /*!< UART Abort Receive Complete Callback  */
+#if defined(USART_CR1_UESM)
+#if defined(USART_CR3_WUFIE)
+  void (* WakeupCallback)(struct __UART_HandleTypeDef *huart);            /*!< UART Wakeup Callback                  */
+#endif /* USART_CR3_WUFIE */
+#endif /* USART_CR1_UESM */
+  void (* RxEventCallback)(struct __UART_HandleTypeDef *huart, uint16_t Pos); /*!< UART Reception Event Callback     */
+
+  void (* MspInitCallback)(struct __UART_HandleTypeDef *huart);           /*!< UART Msp Init callback                */
+  void (* MspDeInitCallback)(struct __UART_HandleTypeDef *huart);         /*!< UART Msp DeInit callback              */
+#endif  /* USE_HAL_UART_REGISTER_CALLBACKS */
+
+} UART_HandleTypeDef;
+
+
+typedef struct serial_s serial_t;
+
+struct serial_s {
+  /*  The 1st 2 members USART_TypeDef *uart
+   *  and UART_HandleTypeDef handle should
+   *  be kept as the first members of this struct
+   *  to have get_serial_obj() function work as expected
+   */
+  uart_t *uart;
+  UART_HandleTypeDef handle;
+  void (*rx_callback)(serial_t *);
+  int (*tx_callback)(serial_t *);
+  IRQn_Type irq;
+  uint8_t index;
+  uint8_t recv;
+  uint8_t *rx_buff;
+  uint8_t *tx_buff;
+  uint16_t rx_tail;
+  uint16_t tx_head;
+  volatile uint16_t rx_head;
+  volatile uint16_t tx_tail;
+  size_t tx_size;
+  int fre;
+  int pae;
+  int ove;
+};
+
+int uart_getc(serial_t *obj, unsigned char *c);
+HAL_UART_StateTypeDef HAL_UART_GetState(UART_HandleTypeDef *huart);
+
+void uart_attach_rx_callback(serial_t *obj, void (*callback)(serial_t *));
+void uart_attach_tx_callback(serial_t *obj, int (*callback)(serial_t *), size_t size);
+
+uint8_t serial_tx_active(serial_t *obj);
+uint8_t serial_rx_active(serial_t *obj);
+
+void uart_init_stm32(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t parity, uint32_t stopbits);
 
 #ifdef __cplusplus
 }
